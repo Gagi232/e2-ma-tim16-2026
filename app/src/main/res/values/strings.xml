@@ -1,3 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Slagalica</string>
+
+    <!-- Auth -->
+    <string name="login">Prijava</string>
+    <string name="register">Registracija</string>
+    <string name="email">Email adresa</string>
+    <string name="username">Korisničko ime</string>
+    <string name="password">Lozinka</string>
+    <string name="confirm_password">Potvrdi lozinku</string>
+    <string name="region">Region</string>
+    <string name="forgot_password">Zaboravili ste lozinku?</string>
+    <string name="logout">Odjava</string>
+
+    <!-- Profil -->
+    <string name="profile">Profil</string>
+    <string name="tokens">Tokeni</string>
+    <string name="stars">Zvezde</string>
+    <string name="league">Liga</string>
+    <string name="statistics">Statistika</string>
+    <string name="change_avatar">Promeni avatar</string>
+    <string name="games_played">Odigrane partije</string>
+    <string name="win_rate">Procenat pobeda</string>
+
+    <!-- Igre -->
+    <string name="ko_zna_zna">Ko zna zna</string>
+    <string name="spojnice">Spojnice</string>
+    <string name="asocijacije">Asocijacije</string>
+    <string name="skocko">Skočko</string>
+    <string name="korak_po_korak">Korak po korak</string>
+    <string name="moj_broj">Moj broj</string>
+    <string name="time_left">Preostalo vreme</string>
+    <string name="your_score">Tvoji bodovi</string>
+    <string name="opponent_score">Bodovi protivnika</string>
+    <string name="question">Pitanje</string>
+    <string name="correct">Tačno!</string>
+    <string name="wrong">Netačno!</string>
+
+    <!-- Navigacija -->
+    <string name="home">Početna</string>
+    <string name="leaderboard">Rang lista</string>
+    <string name="friends">Prijatelji</string>
+    <string name="regions">Regioni</string>
+    <string name="notifications">Obaveštenja</string>
 </resources>

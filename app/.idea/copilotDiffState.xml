@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="CopilotDiffPersistence">
+    <option name="pendingDiffs">
+      <map>
+        <entry key="$PROJECT_DIR$/settings.gradle">
+          <value>
+            <PendingDiffInfo>
+              <option name="filePath" value="$PROJECT_DIR$/settings.gradle" />
+              <option name="originalContent" value="pluginManagement {&#10;    repositories {&#10;        google {&#10;            content {&#10;                includeGroupByRegex(&quot;com\\.android.*&quot;)&#10;                includeGroupByRegex(&quot;com\\.google.*&quot;)&#10;                includeGroupByRegex(&quot;androidx.*&quot;)&#10;            }&#10;        }&#10;        mavenCentral()&#10;        gradlePluginPortal()&#10;    }&#10;}&#10;plugins {&#10;    id 'org.gradle.toolchains.foojay-resolver-convention' version '1.0.0'&#10;}&#10;dependencyResolutionManagement {&#10;    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)&#10;    repositories {&#10;        google()&#10;        mavenCentral()&#10;    }&#10;}&#10;&#10;rootProject.name = &quot;Slagalica&quot;&#10;include ':app'&#10;" />
+              <option name="updatedContent" value="pluginManagement {&#10;    repositories {&#10;        google {&#10;            content {&#10;                includeGroupByRegex(&quot;com\\.android.*&quot;)&#10;                includeGroupByRegex(&quot;com\\.google.*&quot;)&#10;                includeGroupByRegex(&quot;androidx.*&quot;)&#10;            }&#10;        }&#10;        mavenCentral()&#10;        gradlePluginPortal()&#10;    }&#10;}&#10;plugins {&#10;    id 'org.gradle.toolchains.foojay-resolver-convention' version '1.0.0'&#10;}&#10;dependencyResolutionManagement {&#10;    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)&#10;    repositories {&#10;        google()&#10;        mavenCentral()&#10;    }&#10;}&#10;&#10;rootProject.name = &quot;Slagalica&quot;&#10;include ':app'&#10;project(':app').projectDir = file('.')" />
+            </PendingDiffInfo>
+          </value>
+        </entry>
+      </map>
+    </option>
+  </component>
+</project>

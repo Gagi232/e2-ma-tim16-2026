@@ -44,6 +44,7 @@ dependencies {
     implementation libs.material
     implementation libs.activity.ktx
     implementation libs.constraintlayout
+    implementation 'com.google.android.gms:play-services-maps:18.2.0'
 
     testImplementation libs.junit
     androidTestImplementation libs.ext.junit

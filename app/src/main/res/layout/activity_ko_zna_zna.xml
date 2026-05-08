@@ -164,6 +164,16 @@
         app:layout_constraintTop_toBottomOf="@id/cardQuestion">
 
         <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnFinish"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Sledeća igra →"
+            android:layout_marginTop="16dp"
+            style="@style/ButtonPrimary"
+            app:layout_constraintTop_toBottomOf="@id/llAnswers"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"/>
+        <com.google.android.material.button.MaterialButton
             android:id="@+id/btnAnswer1"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"

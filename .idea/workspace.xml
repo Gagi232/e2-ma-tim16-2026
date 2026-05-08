@@ -70,6 +70,11 @@
           <theme>@style/Theme.Slagalica</theme>
         </config>
       </layout>
+      <layout url="file://$PROJECT_DIR$/app/src/main/res/layout/activity_results.xml">
+        <config>
+          <theme>@style/Theme.Slagalica</theme>
+        </config>
+      </layout>
       <layout url="file://$PROJECT_DIR$/app/src/main/res/layout/activity_skocko.xml">
         <config>
           <theme>@style/Theme.Slagalica</theme>
@@ -117,15 +122,29 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="6fa57345-ab3f-4c62-b95c-26366e6ed7ff" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/.gradle/9.4.1/executionHistory/executionHistory.bin" beforeDir="false" afterPath="$PROJECT_DIR$/.gradle/9.4.1/executionHistory/executionHistory.bin" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.gradle/9.4.1/executionHistory/executionHistory.lock" beforeDir="false" afterPath="$PROJECT_DIR$/.gradle/9.4.1/executionHistory/executionHistory.lock" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.gradle/9.4.1/fileHashes/fileHashes.bin" beforeDir="false" afterPath="$PROJECT_DIR$/.gradle/9.4.1/fileHashes/fileHashes.bin" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.gradle/9.4.1/fileHashes/fileHashes.lock" beforeDir="false" afterPath="$PROJECT_DIR$/.gradle/9.4.1/fileHashes/fileHashes.lock" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.gradle/9.4.1/fileHashes/resourceHashesCache.bin" beforeDir="false" afterPath="$PROJECT_DIR$/.gradle/9.4.1/fileHashes/resourceHashesCache.bin" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.gradle/buildOutputCleanup/buildOutputCleanup.lock" beforeDir="false" afterPath="$PROJECT_DIR$/.gradle/buildOutputCleanup/buildOutputCleanup.lock" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.gradle/file-system.probe" beforeDir="false" afterPath="$PROJECT_DIR$/.gradle/file-system.probe" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/example/slagalica/MainActivity.java" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/example/slagalica/MainActivity.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/example/slagalica/ui/auth/ForgotPasswordActivity.java" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/example/slagalica/ui/auth/ForgotPasswordActivity.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/example/slagalica/ui/auth/LoginActivity.java" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/example/slagalica/ui/auth/LoginActivity.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/example/slagalica/ui/auth/RegisterActivity.java" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/example/slagalica/ui/auth/RegisterActivity.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/src/main/res/layout/activity_main.xml" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/res/layout/activity_main.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/AndroidManifest.xml" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/AndroidManifest.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/example/slagalica/ui/games/AsocijacijeActivity.java" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/example/slagalica/ui/games/AsocijacijeActivity.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/example/slagalica/ui/games/KoZnaZnaActivity.java" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/example/slagalica/ui/games/KoZnaZnaActivity.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/example/slagalica/ui/games/KorakPoKorakActivity.java" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/example/slagalica/ui/games/KorakPoKorakActivity.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/example/slagalica/ui/games/MojBrojActivity.java" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/example/slagalica/ui/games/MojBrojActivity.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/example/slagalica/ui/games/SkockoActivity.java" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/example/slagalica/ui/games/SkockoActivity.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/example/slagalica/ui/games/SpojniceActivity.java" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/example/slagalica/ui/games/SpojniceActivity.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/example/slagalica/ui/leaderboard/LeaderboardFragment.java" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/example/slagalica/ui/leaderboard/LeaderboardFragment.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/res/layout/activity_asocijacije.xml" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/res/layout/activity_asocijacije.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/res/layout/activity_ko_zna_zna.xml" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/res/layout/activity_ko_zna_zna.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/res/layout/activity_korak_po_korak.xml" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/res/layout/activity_korak_po_korak.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/res/layout/activity_moj_broj.xml" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/res/layout/activity_moj_broj.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/res/layout/activity_skocko.xml" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/res/layout/activity_skocko.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/res/layout/activity_spojnice.xml" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/res/layout/activity_spojnice.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/res/layout/fragment_leaderboard.xml" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/res/layout/fragment_leaderboard.xml" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -172,8 +191,8 @@
     <option name="RECENT_TEMPLATES">
       <list>
         <option value="resourceFile" />
-        <option value="Class" />
         <option value="layoutResourceFile" />
+        <option value="Class" />
       </list>
     </option>
   </component>
@@ -181,7 +200,7 @@
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
   <component name="ProblemsViewState">
-    <option name="selectedTabId" value="ProjectErrors" />
+    <option name="selectedTabId" value="CurrentFile" />
   </component>
   <component name="ProjectColorInfo">{
   &quot;associatedIndex&quot;: 4,
@@ -303,12 +322,12 @@
       <map>
         <entry key="com.example.slagalica">
           <value>
-            <CheckInfo lastCheckTimestamp="1778182199915" />
+            <CheckInfo lastCheckTimestamp="1778281544905" />
           </value>
         </entry>
         <entry key="com.example.slagalica.test">
           <value>
-            <CheckInfo lastCheckTimestamp="1778182194567" />
+            <CheckInfo lastCheckTimestamp="1778281544907" />
           </value>
         </entry>
       </map>

@@ -17,17 +17,43 @@
         android:layout_marginBottom="16dp"/>
 
     <!-- Tabovi nedeljno/mesečno -->
-    <com.google.android.material.tabs.TabLayout
-        android:id="@+id/tabLayout"
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        app:tabSelectedTextColor="@color/white"
-        app:tabTextColor="@color/primary_green"
-        app:tabIndicatorColor="@color/primary_green"
-        app:tabBackground="@color/white"
+        android:orientation="horizontal"
+        android:layout_marginBottom="16dp">
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnWeekly"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Nedeljno"
+            android:layout_marginEnd="4dp"
+            style="@style/ButtonPrimary"/>
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnMonthly"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Mesečno"
+            android:layout_marginStart="4dp"
+            style="@style/ButtonSecondary"/>
+
+    </LinearLayout>
+
+    <!-- Opseg datuma -->
+    <TextView
+        android:id="@+id/tvDateRange"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="01.05.2026 - 07.05.2026"
+        android:textSize="12sp"
+        android:textColor="@color/text_secondary"
         android:layout_marginBottom="16dp"/>
 
-    <!-- Primer igrača na rang listi -->
+    <!-- 1. mesto -->
     <androidx.cardview.widget.CardView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -44,26 +70,43 @@
                 android:layout_width="32dp"
                 android:layout_height="wrap_content"
                 android:text="🥇"
-                android:textSize="20sp"/>
-            <TextView
+                android:textSize="24sp"/>
+            <ImageView
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:src="@mipmap/ic_launcher"
+                android:background="@drawable/bg_avatar"
+                android:layout_marginHorizontal="8dp"/>
+            <LinearLayout
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="igrač_1"
-                android:textSize="16sp"
-                android:textStyle="bold"
-                android:textColor="@color/text_primary"
-                android:layout_marginStart="8dp"/>
+                android:orientation="vertical">
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="igrač_1"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/text_primary"/>
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="🏆 Liga 3"
+                    android:textSize="12sp"
+                    android:textColor="@color/text_secondary"/>
+            </LinearLayout>
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="250 ⭐"
-                android:textSize="14sp"
+                android:textSize="16sp"
                 android:textColor="@color/primary_yellow_dark"
                 android:textStyle="bold"/>
         </LinearLayout>
     </androidx.cardview.widget.CardView>
 
+    <!-- 2. mesto -->
     <androidx.cardview.widget.CardView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -80,26 +123,43 @@
                 android:layout_width="32dp"
                 android:layout_height="wrap_content"
                 android:text="🥈"
-                android:textSize="20sp"/>
-            <TextView
+                android:textSize="24sp"/>
+            <ImageView
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:src="@mipmap/ic_launcher"
+                android:background="@drawable/bg_avatar"
+                android:layout_marginHorizontal="8dp"/>
+            <LinearLayout
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="igrač_2"
-                android:textSize="16sp"
-                android:textStyle="bold"
-                android:textColor="@color/text_primary"
-                android:layout_marginStart="8dp"/>
+                android:orientation="vertical">
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="igrač_2"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/text_primary"/>
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="🏆 Liga 2"
+                    android:textSize="12sp"
+                    android:textColor="@color/text_secondary"/>
+            </LinearLayout>
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="180 ⭐"
-                android:textSize="14sp"
+                android:textSize="16sp"
                 android:textColor="@color/text_secondary"
                 android:textStyle="bold"/>
         </LinearLayout>
     </androidx.cardview.widget.CardView>
 
+    <!-- 3. mesto -->
     <androidx.cardview.widget.CardView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -116,21 +176,37 @@
                 android:layout_width="32dp"
                 android:layout_height="wrap_content"
                 android:text="🥉"
-                android:textSize="20sp"/>
-            <TextView
+                android:textSize="24sp"/>
+            <ImageView
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:src="@mipmap/ic_launcher"
+                android:background="@drawable/bg_avatar"
+                android:layout_marginHorizontal="8dp"/>
+            <LinearLayout
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="igrač_3"
-                android:textSize="16sp"
-                android:textStyle="bold"
-                android:textColor="@color/text_primary"
-                android:layout_marginStart="8dp"/>
+                android:orientation="vertical">
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="igrač_3"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/text_primary"/>
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="🏆 Liga 1"
+                    android:textSize="12sp"
+                    android:textColor="@color/text_secondary"/>
+            </LinearLayout>
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="120 ⭐"
-                android:textSize="14sp"
+                android:textSize="16sp"
                 android:textColor="@color/text_secondary"
                 android:textStyle="bold"/>
         </LinearLayout>

@@ -1,5 +1,28 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="black">#FF000000</color>
-    <color name="white">#FFFFFFFF</color>
+    <!-- Primarne boje -->
+    <color name="primary_green">#4CAF50</color>
+    <color name="primary_green_dark">#388E3C</color>
+    <color name="primary_green_light">#C8E6C9</color>
+    <color name="primary_yellow">#FFC107</color>
+    <color name="primary_yellow_dark">#F9A825</color>
+    <color name="primary_yellow_light">#FFF9C4</color>
+    <color name="white">#FFFFFF</color>
+    <color name="background">#F9FBF2</color>
+    <color name="surface">#FFFFFF</color>
+
+    <!-- Tekst -->
+    <color name="text_primary">#1B1B1B</color>
+    <color name="text_secondary">#555555</color>
+    <color name="text_hint">#9E9E9E</color>
+
+    <!-- Igre -->
+    <color name="correct_answer">#4CAF50</color>
+    <color name="wrong_answer">#F44336</color>
+    <color name="neutral">#9E9E9E</color>
+
+    <!-- Lige -->
+    <color name="gold">#FFD700</color>
+    <color name="silver">#C0C0C0</color>
+    <color name="bronze">#CD7F32</color>
 </resources>

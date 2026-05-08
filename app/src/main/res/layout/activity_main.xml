@@ -32,6 +32,14 @@
                 android:textColor="@color/white"
                 android:textSize="20sp"
                 android:textStyle="bold"/>
+            <ImageView
+                android:id="@+id/ivProfile"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:src="@mipmap/ic_launcher"
+                android:background="@drawable/bg_avatar"
+                android:layout_marginEnd="8dp"
+                android:scaleType="centerCrop"/>
 
             <!-- Tokeni -->
             <LinearLayout

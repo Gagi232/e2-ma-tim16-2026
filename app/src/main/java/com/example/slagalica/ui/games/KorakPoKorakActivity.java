@@ -15,6 +15,7 @@ import com.example.slagalica.MainActivity;
 import com.example.slagalica.R;
 import com.example.slagalica.data.model.Korak;
 import com.example.slagalica.data.model.KorakState;
+import com.example.slagalica.ui.main.ResultsActivity;
 import com.google.android.material.button.MaterialButton;
 
 import java.util.ArrayList;
@@ -50,10 +51,13 @@ public class KorakPoKorakActivity extends AppCompatActivity {
                 Toast.makeText(this, "(KT1) Provera odgovora", Toast.LENGTH_SHORT).show()
         );
 
-        btnPredaj.setOnClickListener(v -> finish());
+        btnPredaj.setOnClickListener(v -> {
+            startActivity(new Intent(this, ResultsActivity.class));
+            finish();
+        });
 
         btnFinish.setOnClickListener(v -> {
-            startActivity(new Intent(this, MainActivity.class));
+            startActivity(new Intent(this, ResultsActivity.class));
             finish();
         });
     }

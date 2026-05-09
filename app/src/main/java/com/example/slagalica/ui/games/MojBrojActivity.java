@@ -118,12 +118,16 @@ public class MojBrojActivity extends AppCompatActivity {
         );
 
         btnPredaj.setOnClickListener(v -> {
-            startActivity(new Intent(this, KorakPoKorakActivity.class));
+            Intent intent = new Intent(this, KorakPoKorakActivity.class);
+            intent.putExtra("isGuest", getIntent().getBooleanExtra("isGuest", false));
+            startActivity(intent);
             finish();
         });
 
         btnNext.setOnClickListener(v -> {
-            startActivity(new Intent(this, KorakPoKorakActivity.class));
+            Intent intent = new Intent(this, KorakPoKorakActivity.class);
+            intent.putExtra("isGuest", getIntent().getBooleanExtra("isGuest", false));
+            startActivity(intent);
             finish();
         });
     }

@@ -5,6 +5,7 @@ import android.os.Bundle;
 import androidx.appcompat.app.AppCompatActivity;
 import com.example.slagalica.R;
 import com.example.slagalica.MainActivity;
+import com.example.slagalica.ui.main.GuestActivity;
 import com.google.android.material.button.MaterialButton;
 import android.widget.TextView;
 
@@ -26,9 +27,9 @@ public class LoginActivity extends AppCompatActivity {
             finish();
         });
 
-        // Gost → MainActivity
+        // Gost → GuestActivity
         btnGuest.setOnClickListener(v -> {
-            startActivity(new Intent(this, MainActivity.class));
+            startActivity(new Intent(this, GuestActivity.class));
             finish();
         });
 

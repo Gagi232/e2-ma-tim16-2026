@@ -15,7 +15,9 @@ public class SkockoActivity extends AppCompatActivity {
 
         MaterialButton btnFinish = findViewById(R.id.btnFinish);
         btnFinish.setOnClickListener(v -> {
-            startActivity(new Intent(this, MojBrojActivity.class));
+            Intent intent = new Intent(this, MojBrojActivity.class);
+            intent.putExtra("isGuest", getIntent().getBooleanExtra("isGuest", false));
+            startActivity(intent);
             finish();
         });
     }

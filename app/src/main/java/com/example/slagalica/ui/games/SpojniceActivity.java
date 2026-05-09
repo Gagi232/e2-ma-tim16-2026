@@ -15,7 +15,9 @@ public class SpojniceActivity extends AppCompatActivity {
 
         MaterialButton btnFinish = findViewById(R.id.btnFinish);
         btnFinish.setOnClickListener(v -> {
-            startActivity(new Intent(this, AsocijacijeActivity.class));
+            Intent intent = new Intent(this, AsocijacijeActivity.class);
+            intent.putExtra("isGuest", getIntent().getBooleanExtra("isGuest", false));
+            startActivity(intent);
             finish();
         });
     }

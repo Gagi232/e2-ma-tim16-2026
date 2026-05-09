@@ -36,5 +36,6 @@
         <activity android:name=".ui.games.KorakPoKorakActivity" />
         <activity android:name=".ui.games.MojBrojActivity" />
         <activity android:name=".ui.main.ResultsActivity" />
+        <activity android:name=".ui.main.GuestActivity" />
     </application>
 </manifest>

@@ -35,6 +35,11 @@
           <theme>@style/Theme.Slagalica</theme>
         </config>
       </layout>
+      <layout url="file://$PROJECT_DIR$/app/src/main/res/layout/activity_guest.xml">
+        <config>
+          <theme>@style/Theme.Slagalica</theme>
+        </config>
+      </layout>
       <layout url="file://$PROJECT_DIR$/app/src/main/res/layout/activity_ko_zna_zna.xml">
         <config>
           <theme>@style/Theme.Slagalica</theme>
@@ -127,8 +132,18 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="6fa57345-ab3f-4c62-b95c-26366e6ed7ff" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/.gradle/buildOutputCleanup/buildOutputCleanup.lock" beforeDir="false" afterPath="$PROJECT_DIR$/.gradle/buildOutputCleanup/buildOutputCleanup.lock" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/AndroidManifest.xml" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/AndroidManifest.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/example/slagalica/ui/auth/LoginActivity.java" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/example/slagalica/ui/auth/LoginActivity.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/example/slagalica/ui/games/AsocijacijeActivity.java" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/example/slagalica/ui/games/AsocijacijeActivity.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/example/slagalica/ui/games/KoZnaZnaActivity.java" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/example/slagalica/ui/games/KoZnaZnaActivity.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/app/src/main/java/com/example/slagalica/ui/games/KorakPoKorakActivity.java" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/example/slagalica/ui/games/KorakPoKorakActivity.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/example/slagalica/ui/games/MojBrojActivity.java" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/example/slagalica/ui/games/MojBrojActivity.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/example/slagalica/ui/games/SkockoActivity.java" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/example/slagalica/ui/games/SkockoActivity.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/example/slagalica/ui/games/SpojniceActivity.java" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/example/slagalica/ui/games/SpojniceActivity.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/example/slagalica/ui/main/ResultsActivity.java" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/example/slagalica/ui/main/ResultsActivity.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/res/layout/activity_skocko.xml" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/res/layout/activity_skocko.xml" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -175,8 +190,8 @@
     <option name="RECENT_TEMPLATES">
       <list>
         <option value="resourceFile" />
-        <option value="layoutResourceFile" />
         <option value="Class" />
+        <option value="layoutResourceFile" />
       </list>
     </option>
   </component>
@@ -184,7 +199,7 @@
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
   <component name="ProblemsViewState">
-    <option name="selectedTabId" value="ProjectErrors" />
+    <option name="selectedTabId" value="CurrentFile" />
   </component>
   <component name="ProjectColorInfo">{
   &quot;associatedIndex&quot;: 4,

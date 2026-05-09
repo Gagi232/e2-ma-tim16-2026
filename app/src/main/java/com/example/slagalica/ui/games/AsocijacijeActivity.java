@@ -15,7 +15,9 @@ public class AsocijacijeActivity extends AppCompatActivity {
 
         MaterialButton btnFinish = findViewById(R.id.btnFinish);
         btnFinish.setOnClickListener(v -> {
-            startActivity(new Intent(this, SkockoActivity.class));
+            Intent intent = new Intent(this, SkockoActivity.class);
+            intent.putExtra("isGuest", getIntent().getBooleanExtra("isGuest", false));
+            startActivity(intent);
             finish();
         });
     }

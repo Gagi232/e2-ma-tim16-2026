@@ -16,8 +16,11 @@ public class KoZnaZnaActivity extends AppCompatActivity {
 
         MaterialButton btnFinish = findViewById(R.id.btnFinish);
         btnFinish.setOnClickListener(v -> {
-            startActivity(new Intent(this, SpojniceActivity.class));
+            Intent intent = new Intent(this, SpojniceActivity.class);
+            intent.putExtra("isGuest", getIntent().getBooleanExtra("isGuest", false));
+            startActivity(intent);
             finish();
         });
+
     }
 }

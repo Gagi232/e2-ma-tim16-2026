@@ -48,7 +48,7 @@
                         android:layout_height="100dp"
                         android:src="@mipmap/ic_launcher"
                         android:scaleType="centerCrop"
-                        android:background="@drawable/bg_avatar"/>
+                        android:background="@drawable/bg_avatar_gold"/>
 
                     <ImageView
                         android:id="@+id/ivChangeAvatar"
@@ -223,7 +223,7 @@
                     android:id="@+id/ivQrCode"
                     android:layout_width="80dp"
                     android:layout_height="80dp"
-                    android:src="@android:drawable/ic_menu_share"/>
+                    android:src="@drawable/baseline_qr_code_24"/>
             </LinearLayout>
         </androidx.cardview.widget.CardView>
 
@@ -270,20 +270,24 @@
                 <View android:layout_width="match_parent" android:layout_height="1dp"
                     android:background="@color/primary_green_light"/>
 
-                <!-- Procenat pobeda -->
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:gravity="center_vertical"
-                    android:paddingVertical="8dp">
-                    <TextView android:layout_width="0dp" android:layout_height="wrap_content"
-                        android:layout_weight="1" android:text="Procenat pobeda"
-                        android:textSize="14sp" android:textColor="@color/text_secondary"/>
+                <!-- Procenat pobeda/poraza -->
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="🏆 Pobede / Porazi"
+                    android:textSize="13sp" android:textColor="@color/text_secondary"
+                    android:paddingTop="8dp"/>
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:orientation="horizontal" android:gravity="center_vertical"
+                    android:layout_marginTop="4dp" android:layout_marginBottom="4dp">
+                    <ProgressBar android:id="@+id/pbWinRate"
+                        style="@style/Widget.AppCompat.ProgressBar.Horizontal"
+                        android:layout_width="0dp" android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:progress="60" android:progressTint="@color/primary_green"/>
                     <TextView android:id="@+id/tvWinRate"
-                        android:layout_width="wrap_content" android:layout_height="wrap_content"
-                        android:text="0%" android:textSize="16sp" android:textStyle="bold"
-                        android:textColor="@color/primary_green"/>
+                        android:layout_width="50dp" android:layout_height="wrap_content"
+                        android:text="60%" android:textSize="12sp" android:textStyle="bold"
+                        android:textColor="@color/primary_green" android:gravity="end"
+                        android:layout_marginStart="8dp"/>
                 </LinearLayout>
 
                 <View android:layout_width="match_parent" android:layout_height="1dp"
@@ -291,14 +295,28 @@
 
                 <!-- Ko zna zna -->
                 <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                    android:text="🧠 Ko zna zna — tačni odgovori"
+                    android:text="🧠 Ko zna zna — pogođena/promašena pitanja"
                     android:textSize="13sp" android:textColor="@color/text_secondary"
                     android:paddingTop="8dp"/>
-                <ProgressBar android:id="@+id/pbKoZnaZna"
-                    style="@style/Widget.AppCompat.ProgressBar.Horizontal"
-                    android:layout_width="match_parent" android:layout_height="wrap_content"
-                    android:progress="60" android:progressTint="@color/primary_green"
-                    android:layout_marginTop="4dp" android:layout_marginBottom="8dp"/>
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:orientation="horizontal" android:gravity="center_vertical"
+                    android:layout_marginTop="4dp" android:layout_marginBottom="4dp">
+                    <ProgressBar android:id="@+id/pbKoZnaZna"
+                        style="@style/Widget.AppCompat.ProgressBar.Horizontal"
+                        android:layout_width="0dp" android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:progress="60" android:progressTint="@color/primary_green"/>
+                    <TextView android:id="@+id/tvKoZnaZnaStats"
+                        android:layout_width="60dp" android:layout_height="wrap_content"
+                        android:text="3/2 ✓/✗" android:textSize="11sp" android:textStyle="bold"
+                        android:textColor="@color/primary_green" android:gravity="end"
+                        android:layout_marginStart="8dp"/>
+                </LinearLayout>
+                <TextView android:id="@+id/tvKoZnaZnaAvg"
+                    android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="Prosek bodova: 15-20"
+                    android:textSize="11sp" android:textColor="@color/text_hint"
+                    android:layout_marginBottom="8dp"/>
 
                 <View android:layout_width="match_parent" android:layout_height="1dp"
                     android:background="@color/primary_green_light"/>
@@ -308,11 +326,25 @@
                     android:text="🔗 Spojnice — uspešno povezani pojmovi"
                     android:textSize="13sp" android:textColor="@color/text_secondary"
                     android:paddingTop="8dp"/>
-                <ProgressBar android:id="@+id/pbSpojnice"
-                    style="@style/Widget.AppCompat.ProgressBar.Horizontal"
-                    android:layout_width="match_parent" android:layout_height="wrap_content"
-                    android:progress="45" android:progressTint="@color/primary_yellow_dark"
-                    android:layout_marginTop="4dp" android:layout_marginBottom="8dp"/>
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:orientation="horizontal" android:gravity="center_vertical"
+                    android:layout_marginTop="4dp" android:layout_marginBottom="4dp">
+                    <ProgressBar android:id="@+id/pbSpojnice"
+                        style="@style/Widget.AppCompat.ProgressBar.Horizontal"
+                        android:layout_width="0dp" android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:progress="45" android:progressTint="@color/primary_yellow_dark"/>
+                    <TextView android:id="@+id/tvSpojniceStats"
+                        android:layout_width="50dp" android:layout_height="wrap_content"
+                        android:text="45%" android:textSize="12sp" android:textStyle="bold"
+                        android:textColor="@color/primary_yellow_dark" android:gravity="end"
+                        android:layout_marginStart="8dp"/>
+                </LinearLayout>
+                <TextView android:id="@+id/tvSpojniceAvg"
+                    android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="Prosek bodova: 8-12"
+                    android:textSize="11sp" android:textColor="@color/text_hint"
+                    android:layout_marginBottom="8dp"/>
 
                 <View android:layout_width="match_parent" android:layout_height="1dp"
                     android:background="@color/primary_green_light"/>
@@ -322,39 +354,81 @@
                     android:text="💡 Asocijacije — rešene/nerešene"
                     android:textSize="13sp" android:textColor="@color/text_secondary"
                     android:paddingTop="8dp"/>
-                <ProgressBar android:id="@+id/pbAsocijacije"
-                    style="@style/Widget.AppCompat.ProgressBar.Horizontal"
-                    android:layout_width="match_parent" android:layout_height="wrap_content"
-                    android:progress="70" android:progressTint="@color/primary_green"
-                    android:layout_marginTop="4dp" android:layout_marginBottom="8dp"/>
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:orientation="horizontal" android:gravity="center_vertical"
+                    android:layout_marginTop="4dp" android:layout_marginBottom="4dp">
+                    <ProgressBar android:id="@+id/pbAsocijacije"
+                        style="@style/Widget.AppCompat.ProgressBar.Horizontal"
+                        android:layout_width="0dp" android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:progress="70" android:progressTint="@color/primary_green"/>
+                    <TextView android:id="@+id/tvAsocijacijeStats"
+                        android:layout_width="60dp" android:layout_height="wrap_content"
+                        android:text="7/3 ✓/✗" android:textSize="11sp" android:textStyle="bold"
+                        android:textColor="@color/primary_green" android:gravity="end"
+                        android:layout_marginStart="8dp"/>
+                </LinearLayout>
+                <TextView android:id="@+id/tvAsocijacijeAvg"
+                    android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="Prosek bodova: 20-30"
+                    android:textSize="11sp" android:textColor="@color/text_hint"
+                    android:layout_marginBottom="8dp"/>
 
                 <View android:layout_width="match_parent" android:layout_height="1dp"
                     android:background="@color/primary_green_light"/>
 
                 <!-- Skočko -->
                 <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                    android:text="🎯 Skočko — pogođene kombinacije"
+                    android:text="🎯 Skočko — pogođene kombinacije po pokušaju"
                     android:textSize="13sp" android:textColor="@color/text_secondary"
                     android:paddingTop="8dp"/>
-                <ProgressBar android:id="@+id/pbSkocko"
-                    style="@style/Widget.AppCompat.ProgressBar.Horizontal"
-                    android:layout_width="match_parent" android:layout_height="wrap_content"
-                    android:progress="35" android:progressTint="@color/wrong_answer"
-                    android:layout_marginTop="4dp" android:layout_marginBottom="8dp"/>
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:orientation="horizontal" android:gravity="center_vertical"
+                    android:layout_marginTop="4dp" android:layout_marginBottom="4dp">
+                    <ProgressBar android:id="@+id/pbSkocko"
+                        style="@style/Widget.AppCompat.ProgressBar.Horizontal"
+                        android:layout_width="0dp" android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:progress="35" android:progressTint="@color/wrong_answer"/>
+                    <TextView android:id="@+id/tvSkockoStats"
+                        android:layout_width="50dp" android:layout_height="wrap_content"
+                        android:text="35%" android:textSize="12sp" android:textStyle="bold"
+                        android:textColor="@color/wrong_answer" android:gravity="end"
+                        android:layout_marginStart="8dp"/>
+                </LinearLayout>
+                <TextView android:id="@+id/tvSkockoAvg"
+                    android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="Prosek bodova: 10-15"
+                    android:textSize="11sp" android:textColor="@color/text_hint"
+                    android:layout_marginBottom="8dp"/>
 
                 <View android:layout_width="match_parent" android:layout_height="1dp"
                     android:background="@color/primary_green_light"/>
 
                 <!-- Korak po korak -->
                 <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                    android:text="👣 Korak po korak — pogođeni pojmovi"
+                    android:text="👣 Korak po korak — pogođeni pojmovi po koraku"
                     android:textSize="13sp" android:textColor="@color/text_secondary"
                     android:paddingTop="8dp"/>
-                <ProgressBar android:id="@+id/pbKorakPoKorak"
-                    style="@style/Widget.AppCompat.ProgressBar.Horizontal"
-                    android:layout_width="match_parent" android:layout_height="wrap_content"
-                    android:progress="55" android:progressTint="@color/primary_yellow_dark"
-                    android:layout_marginTop="4dp" android:layout_marginBottom="8dp"/>
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:orientation="horizontal" android:gravity="center_vertical"
+                    android:layout_marginTop="4dp" android:layout_marginBottom="4dp">
+                    <ProgressBar android:id="@+id/pbKorakPoKorak"
+                        style="@style/Widget.AppCompat.ProgressBar.Horizontal"
+                        android:layout_width="0dp" android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:progress="55" android:progressTint="@color/primary_yellow_dark"/>
+                    <TextView android:id="@+id/tvKorakStats"
+                        android:layout_width="50dp" android:layout_height="wrap_content"
+                        android:text="55%" android:textSize="12sp" android:textStyle="bold"
+                        android:textColor="@color/primary_yellow_dark" android:gravity="end"
+                        android:layout_marginStart="8dp"/>
+                </LinearLayout>
+                <TextView android:id="@+id/tvKorakAvg"
+                    android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="Prosek bodova: 12-18"
+                    android:textSize="11sp" android:textColor="@color/text_hint"
+                    android:layout_marginBottom="8dp"/>
 
                 <View android:layout_width="match_parent" android:layout_height="1dp"
                     android:background="@color/primary_green_light"/>
@@ -364,11 +438,25 @@
                     android:text="🔢 Moj broj — tačan broj pronađen"
                     android:textSize="13sp" android:textColor="@color/text_secondary"
                     android:paddingTop="8dp"/>
-                <ProgressBar android:id="@+id/pbMojBroj"
-                    style="@style/Widget.AppCompat.ProgressBar.Horizontal"
-                    android:layout_width="match_parent" android:layout_height="wrap_content"
-                    android:progress="40" android:progressTint="@color/primary_green"
-                    android:layout_marginTop="4dp" android:layout_marginBottom="8dp"/>
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:orientation="horizontal" android:gravity="center_vertical"
+                    android:layout_marginTop="4dp" android:layout_marginBottom="4dp">
+                    <ProgressBar android:id="@+id/pbMojBroj"
+                        style="@style/Widget.AppCompat.ProgressBar.Horizontal"
+                        android:layout_width="0dp" android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:progress="40" android:progressTint="@color/primary_green"/>
+                    <TextView android:id="@+id/tvMojBrojStats"
+                        android:layout_width="50dp" android:layout_height="wrap_content"
+                        android:text="40%" android:textSize="12sp" android:textStyle="bold"
+                        android:textColor="@color/primary_green" android:gravity="end"
+                        android:layout_marginStart="8dp"/>
+                </LinearLayout>
+                <TextView android:id="@+id/tvMojBrojAvg"
+                    android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="Prosek bodova: 5-10"
+                    android:textSize="11sp" android:textColor="@color/text_hint"
+                    android:layout_marginBottom="8dp"/>
 
             </LinearLayout>
         </androidx.cardview.widget.CardView>

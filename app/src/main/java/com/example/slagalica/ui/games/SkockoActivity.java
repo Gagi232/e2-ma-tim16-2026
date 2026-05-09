@@ -15,7 +15,7 @@ public class SkockoActivity extends AppCompatActivity {
 
         MaterialButton btnFinish = findViewById(R.id.btnFinish);
         btnFinish.setOnClickListener(v -> {
-            startActivity(new Intent(this, KorakPoKorakActivity.class));
+            startActivity(new Intent(this, MojBrojActivity.class));
             finish();
         });
     }

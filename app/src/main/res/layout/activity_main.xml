@@ -28,7 +28,7 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="Slagalica"
+                android:text="@string/app_name"
                 android:textColor="@color/white"
                 android:textSize="20sp"
                 android:textStyle="bold"/>
@@ -111,7 +111,7 @@
                     android:id="@+id/tvLeague"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Liga 0"
+                    android:text="@string/league"
                     android:textColor="@color/text_primary"
                     android:textStyle="bold"
                     android:textSize="14sp"

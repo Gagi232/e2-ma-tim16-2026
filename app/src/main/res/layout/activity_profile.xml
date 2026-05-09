@@ -11,6 +11,17 @@
         android:orientation="vertical"
         android:padding="16dp">
 
+        <!-- Dugme za nazad -->
+        <ImageButton
+            android:id="@+id/btnBack"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:src="@android:drawable/ic_menu_revert"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/back"
+            android:layout_marginBottom="8dp"
+            app:tint="@color/primary_green" />
+
         <!-- Header kartica -->
         <androidx.cardview.widget.CardView
             android:layout_width="match_parent"

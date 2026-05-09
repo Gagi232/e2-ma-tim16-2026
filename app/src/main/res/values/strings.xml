@@ -18,6 +18,7 @@
     <string name="tokens">Tokeni</string>
     <string name="stars">Zvezde</string>
     <string name="league">Liga</string>
+    <string name="league_placeholder">Liga %1$d</string>
     <string name="statistics">Statistika</string>
     <string name="change_avatar">Promeni avatar</string>
     <string name="games_played">Odigrane partije</string>
@@ -26,6 +27,20 @@
     <!-- Igre -->
     <string name="ko_zna_zna">Ko zna zna</string>
     <string name="spojnice">Spojnice</string>
+    <string name="spojnice_timer_value">30</string>
+    <string name="spojnice_instruction">Povežite pojmove iz leve i desne kolone</string>
+    <string name="spojnice_left_1">Pojam 1</string>
+    <string name="spojnice_left_2">Pojam 2</string>
+    <string name="spojnice_left_3">Pojam 3</string>
+    <string name="spojnice_left_4">Pojam 4</string>
+    <string name="spojnice_left_5">Pojam 5</string>
+    <string name="spojnice_right_1">Odgovor 1</string>
+    <string name="spojnice_right_2">Odgovor 2</string>
+    <string name="spojnice_right_3">Odgovor 3</string>
+    <string name="spojnice_right_4">Odgovor 4</string>
+    <string name="spojnice_right_5">Odgovor 5</string>
+    <string name="spojnice_next_game">Sledeća igra →</string>
+    <string name="finish_game">Kraj igre</string>
     <string name="asocijacije">Asocijacije</string>
     <string name="skocko">Skočko</string>
     <string name="korak_po_korak">Korak po korak</string>
@@ -34,6 +49,7 @@
     <string name="your_score">Tvoji bodovi</string>
     <string name="opponent_score">Bodovi protivnika</string>
     <string name="question">Pitanje</string>
+    <string name="question_mark">?</string>
     <string name="correct">Tačno!</string>
     <string name="wrong">Netačno!</string>
 
@@ -43,4 +59,39 @@
     <string name="friends">Prijatelji</string>
     <string name="regions">Regioni</string>
     <string name="notifications">Obaveštenja</string>
+
+    <!-- Korak po korak UI -->
+    <string name="korak_player_label">Igra: Marko</string>
+    <string name="korak_round_label">Runda 1/2</string>
+    <string name="korak_score_label">0 ★</string>
+    <string name="korak_guess_hint">Tvoja pretpostavka</string>
+    <string name="korak_guess_button">Pogodi</string>
+    <string name="korak_predaj_button">Predaj</string>
+    <string name="korak_locked">🔒 Zaključan</string>
+    <string name="korak_time_up">Vreme je isteklo</string>
+    <string name="korak_number_placeholder">1</string>
+
+    <!-- Home screen -->
+    <string name="home_welcome">Dobrodošli! 👋</string>
+    <string name="login_welcome">Dobrodošli nazad!</string>
+    <string name="login_no_account">Nemate nalog? </string>
+    <string name="login_register_link">Registrujte se</string>
+    <string name="login_guest">Nastavi bez registracije</string>
+    <string name="home_ready">Spremni za igru?</string>
+    <string name="home_find_opponent">Pronađi protivnika</string>
+    <string name="home_token_cost">Troši 1 token po partiji</string>
+    <string name="home_play">IGRAJ!</string>
+    <string name="home_daily_missions">Dnevne misije</string>
+    <string name="home_mission_win">Pobedi partiju</string>
+    <string name="home_mission_chat">Pošalji poruku u čet</string>
+    <string name="home_mission_friend">Odigraj prijateljsku partiju</string>
+    <string name="home_mission_tournament">Pobedi partiju u turniru</string>
+    <string name="home_mission_reward">+3 ⭐</string>
+    <string name="home_korak_po_korak_button">Korak po korak</string>
+    <string name="home_emoji_game">🎮</string>
+    <string name="home_emoji_trophy">🏆</string>
+    <string name="home_emoji_chat">💬</string>
+    <string name="home_emoji_friends">👥</string>
+    <string name="home_emoji_medal">🥇</string>
+    <string name="back">Nazad</string>
 </resources>

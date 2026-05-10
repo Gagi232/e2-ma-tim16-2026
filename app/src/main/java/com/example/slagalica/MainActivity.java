@@ -3,6 +3,10 @@ package com.example.slagalica;
 import android.content.Intent;
 import android.os.Bundle;
 import android.widget.ImageView;
+import android.widget.TextView;
+import android.widget.Toast;
+
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.fragment.app.Fragment;
 import com.example.slagalica.ui.friends.FriendsFragment;
@@ -22,6 +26,9 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        TextView tvLeague = findViewById(R.id.tvLeague);
+
+        tvLeague.setOnClickListener(v -> showLeagueDialog());
         ImageView ivProfile = findViewById(R.id.ivProfile);
         MaterialButton btnPlay = findViewById(R.id.btnPlay);
         btnPlay.setOnClickListener(v ->
@@ -57,5 +64,27 @@ public class MainActivity extends AppCompatActivity {
                 .beginTransaction()
                 .replace(R.id.fragmentContainer, fragment)
                 .commit();
+    }
+
+    private void showLeagueDialog() {
+
+        String[] leagues ={
+                "🏆 Liga 0",
+                "📚 Početnička Liga",
+                "🧠 Školska Liga",
+                "🏛️ Akademska Liga",
+                "👑 Genijalac Liga"
+        };
+
+        new AlertDialog.Builder(this)
+                .setTitle("Lige")
+                .setItems(leagues, (dialog, which) -> {
+
+                    Toast.makeText(this,
+                            "Lige: " + leagues[which],
+                            Toast.LENGTH_SHORT).show();
+
+                })
+                .show();
     }
 }

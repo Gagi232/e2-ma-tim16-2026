@@ -66,7 +66,7 @@
     <string name="korak_score_label">0 ★</string>
     <string name="korak_guess_hint">Tvoja pretpostavka</string>
     <string name="korak_guess_button">Pogodi</string>
-    <string name="korak_predaj_button">Predaj</string>
+    <string name="korak_predaj_button">Kraj</string>
     <string name="korak_locked">🔒 Zaključan</string>
     <string name="korak_time_up">Vreme je isteklo</string>
     <string name="korak_number_placeholder">1</string>

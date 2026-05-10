@@ -135,6 +135,11 @@
           <theme>@style/Theme.Slagalica</theme>
         </config>
       </layout>
+      <layout url="file://$PROJECT_DIR$/app/src/main/res/layout/include_game_top_bar.xml">
+        <config>
+          <theme>@style/Theme.Slagalica</theme>
+        </config>
+      </layout>
       <layout url="file://$PROJECT_DIR$/app/src/main/res/layout/item_korak.xml">
         <config>
           <theme>@style/Theme.Slagalica</theme>
@@ -154,7 +159,18 @@
     <list default="true" id="6fa57345-ab3f-4c62-b95c-26366e6ed7ff" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.gradle/buildOutputCleanup/buildOutputCleanup.lock" beforeDir="false" afterPath="$PROJECT_DIR$/.gradle/buildOutputCleanup/buildOutputCleanup.lock" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/example/slagalica/MainActivity.java" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/example/slagalica/MainActivity.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/example/slagalica/ui/games/AsocijacijeActivity.java" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/example/slagalica/ui/games/AsocijacijeActivity.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/example/slagalica/ui/games/KoZnaZnaActivity.java" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/example/slagalica/ui/games/KoZnaZnaActivity.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/example/slagalica/ui/games/MojBrojActivity.java" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/example/slagalica/ui/games/MojBrojActivity.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/example/slagalica/ui/games/SkockoActivity.java" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/example/slagalica/ui/games/SkockoActivity.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/example/slagalica/ui/games/SpojniceActivity.java" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/example/slagalica/ui/games/SpojniceActivity.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/res/layout/activity_asocijacije.xml" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/res/layout/activity_asocijacije.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/res/layout/activity_ko_zna_zna.xml" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/res/layout/activity_ko_zna_zna.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/res/layout/activity_korak_po_korak.xml" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/res/layout/activity_korak_po_korak.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/res/layout/activity_moj_broj.xml" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/res/layout/activity_moj_broj.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/res/layout/activity_skocko.xml" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/res/layout/activity_skocko.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/res/layout/activity_spojnice.xml" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/res/layout/activity_spojnice.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/res/values/strings.xml" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/res/values/strings.xml" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />

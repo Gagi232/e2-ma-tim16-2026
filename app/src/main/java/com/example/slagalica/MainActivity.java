@@ -6,12 +6,14 @@ import android.widget.ImageView;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.fragment.app.Fragment;
 import com.example.slagalica.ui.friends.FriendsFragment;
+import com.example.slagalica.ui.games.KoZnaZnaActivity;
 import com.example.slagalica.ui.leaderboard.LeaderboardFragment;
 import com.example.slagalica.ui.main.HomeFragment;
 import com.example.slagalica.ui.notification.NotificationsFragment;
 import com.example.slagalica.ui.profile.ProfileActivity;
 import com.example.slagalica.ui.region.RegionsFragment;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
+import com.google.android.material.button.MaterialButton;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -21,6 +23,10 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         ImageView ivProfile = findViewById(R.id.ivProfile);
+        MaterialButton btnPlay = findViewById(R.id.btnPlay);
+        btnPlay.setOnClickListener(v ->
+                startActivity(new Intent(this, KoZnaZnaActivity.class))
+        );
         BottomNavigationView bottomNav = findViewById(R.id.bottomNav);
 
         loadFragment(new HomeFragment());

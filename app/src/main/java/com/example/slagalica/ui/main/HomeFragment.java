@@ -10,6 +10,7 @@ import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import com.example.slagalica.R;
 import com.example.slagalica.ui.games.KoZnaZnaActivity;
+import com.example.slagalica.ui.tournament.TournamentActivity;
 import com.google.android.material.button.MaterialButton;
 
 public class HomeFragment extends Fragment {
@@ -24,6 +25,10 @@ public class HomeFragment extends Fragment {
         MaterialButton btnPlay = view.findViewById(R.id.btnPlay);
         btnPlay.setOnClickListener(v ->
                 startActivity(new Intent(getActivity(), KoZnaZnaActivity.class))
+        );
+        MaterialButton btnTournament = view.findViewById(R.id.btnTournament);
+        btnTournament.setOnClickListener(v ->
+                startActivity(new Intent(getActivity(), TournamentActivity.class))
         );
 
         return view;

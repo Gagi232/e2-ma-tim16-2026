@@ -1,98 +1,223 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:background="@color/background"
-    android:padding="16dp">
+    android:background="@color/background">
 
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Regioni Srbije"
-        android:textSize="24sp"
-        android:textStyle="bold"
-        android:textColor="@color/text_primary"
-        android:layout_marginBottom="16dp"/>
-
-    <!-- Mapa placeholder -->
-    <androidx.cardview.widget.CardView
+    <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="200dp"
-        android:layout_marginBottom="16dp"
-        app:cardCornerRadius="12dp"
-        app:cardBackgroundColor="@color/primary_green_light">
-        <org.osmdroid.views.MapView
-            android:id="@+id/mapView"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="16dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Regioni Srbije"
+            android:textSize="24sp"
+            android:textStyle="bold"
+            android:textColor="@color/text_primary"
+            android:layout_marginBottom="16dp"/>
+
+        <!-- Mapa -->
+        <androidx.cardview.widget.CardView
             android:layout_width="match_parent"
-            android:layout_height="250dp"/>
-    </androidx.cardview.widget.CardView>
+            android:layout_height="250dp"
+            android:layout_marginBottom="16dp"
+            app:cardCornerRadius="12dp"
+            app:cardBackgroundColor="@color/primary_green_light">
+            <org.osmdroid.views.MapView
+                android:id="@+id/mapView"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"/>
+        </androidx.cardview.widget.CardView>
 
-    <!-- Regioni lista -->
-    <androidx.cardview.widget.CardView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        app:cardCornerRadius="12dp"
-        app:cardBackgroundColor="@color/white">
-        <LinearLayout
+        <!-- Mesečna rang lista -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Mesečna rang lista — klikni za statistiku"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:textColor="@color/text_primary"
+            android:layout_marginBottom="8dp"/>
+
+        <androidx.cardview.widget.CardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:padding="8dp">
-
+            app:cardCornerRadius="12dp"
+            app:cardBackgroundColor="@color/white">
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:padding="12dp"
-                android:gravity="center_vertical">
-                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                    android:text="🌾" android:textSize="20sp" android:layout_marginEnd="12dp"/>
-                <TextView android:layout_width="0dp" android:layout_height="wrap_content"
-                    android:layout_weight="1" android:text="Vojvodina"
-                    android:textSize="15sp" android:textStyle="bold" android:textColor="@color/text_primary"/>
-                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                    android:text="245 ⭐" android:textSize="13sp" android:textColor="@color/primary_yellow_dark"/>
+                android:orientation="vertical"
+                android:padding="8dp">
+
+                <!-- Beograd - 1. mesto, tvoj region -->
+                <LinearLayout
+                    android:id="@+id/rowBeograd"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:padding="12dp"
+                    android:gravity="center_vertical"
+                    android:background="@color/primary_yellow_light"
+                    android:clickable="true"
+                    android:focusable="true">
+                    <TextView android:layout_width="28dp" android:layout_height="wrap_content"
+                        android:text="🥇" android:textSize="18sp"/>
+                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                        android:text="🏙️" android:textSize="18sp" android:layout_marginEnd="8dp"/>
+                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
+                        android:layout_weight="1" android:orientation="vertical">
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="Beograd" android:textSize="15sp" android:textStyle="bold"
+                            android:textColor="@color/text_primary"/>
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="← Vaš region" android:textSize="11sp"
+                            android:textColor="@color/primary_green" android:textStyle="bold"/>
+                    </LinearLayout>
+                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                        android:text="312 ⭐" android:textSize="14sp"
+                        android:textColor="@color/primary_yellow_dark" android:textStyle="bold"/>
+                </LinearLayout>
+
+                <View android:layout_width="match_parent" android:layout_height="1dp"
+                    android:background="@color/primary_green_light"/>
+
+                <!-- Vojvodina - 2. mesto -->
+                <LinearLayout
+                    android:id="@+id/rowVojvodina"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:padding="12dp"
+                    android:gravity="center_vertical"
+                    android:clickable="true"
+                    android:focusable="true">
+                    <TextView android:layout_width="28dp" android:layout_height="wrap_content"
+                        android:text="🥈" android:textSize="18sp"/>
+                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                        android:text="🌾" android:textSize="18sp" android:layout_marginEnd="8dp"/>
+                    <TextView android:layout_width="0dp" android:layout_height="wrap_content"
+                        android:layout_weight="1" android:text="Vojvodina"
+                        android:textSize="15sp" android:textStyle="bold"
+                        android:textColor="@color/text_primary"/>
+                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                        android:text="245 ⭐" android:textSize="13sp"
+                        android:textColor="@color/text_secondary"/>
+                </LinearLayout>
+
+                <View android:layout_width="match_parent" android:layout_height="1dp"
+                    android:background="@color/primary_green_light"/>
+
+                <!-- Šumadija - 3. mesto -->
+                <LinearLayout
+                    android:id="@+id/rowSumadija"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:padding="12dp"
+                    android:gravity="center_vertical"
+                    android:clickable="true"
+                    android:focusable="true">
+                    <TextView android:layout_width="28dp" android:layout_height="wrap_content"
+                        android:text="🥉" android:textSize="18sp"/>
+                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                        android:text="⛰️" android:textSize="18sp" android:layout_marginEnd="8dp"/>
+                    <TextView android:layout_width="0dp" android:layout_height="wrap_content"
+                        android:layout_weight="1" android:text="Šumadija"
+                        android:textSize="15sp" android:textStyle="bold"
+                        android:textColor="@color/text_primary"/>
+                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                        android:text="178 ⭐" android:textSize="13sp"
+                        android:textColor="@color/text_secondary"/>
+                </LinearLayout>
+
+                <View android:layout_width="match_parent" android:layout_height="1dp"
+                    android:background="@color/primary_green_light"/>
+
+                <!-- Zapadna Srbija -->
+                <LinearLayout
+                    android:id="@+id/rowZapadna"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:padding="12dp"
+                    android:gravity="center_vertical"
+                    android:clickable="true"
+                    android:focusable="true">
+                    <TextView android:layout_width="28dp" android:layout_height="wrap_content"
+                        android:text="4." android:textSize="13sp"
+                        android:textColor="@color/text_secondary"/>
+                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                        android:text="🌲" android:textSize="18sp" android:layout_marginEnd="8dp"/>
+                    <TextView android:layout_width="0dp" android:layout_height="wrap_content"
+                        android:layout_weight="1" android:text="Zapadna Srbija"
+                        android:textSize="15sp" android:textStyle="bold"
+                        android:textColor="@color/text_primary"/>
+                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                        android:text="142 ⭐" android:textSize="13sp"
+                        android:textColor="@color/text_secondary"/>
+                </LinearLayout>
+
+                <View android:layout_width="match_parent" android:layout_height="1dp"
+                    android:background="@color/primary_green_light"/>
+
+                <!-- Istočna Srbija -->
+                <LinearLayout
+                    android:id="@+id/rowIstocna"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:padding="12dp"
+                    android:gravity="center_vertical"
+                    android:clickable="true"
+                    android:focusable="true">
+                    <TextView android:layout_width="28dp" android:layout_height="wrap_content"
+                        android:text="5." android:textSize="13sp"
+                        android:textColor="@color/text_secondary"/>
+                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                        android:text="🏔️" android:textSize="18sp" android:layout_marginEnd="8dp"/>
+                    <TextView android:layout_width="0dp" android:layout_height="wrap_content"
+                        android:layout_weight="1" android:text="Istočna Srbija"
+                        android:textSize="15sp" android:textStyle="bold"
+                        android:textColor="@color/text_primary"/>
+                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                        android:text="98 ⭐" android:textSize="13sp"
+                        android:textColor="@color/text_secondary"/>
+                </LinearLayout>
+
+                <View android:layout_width="match_parent" android:layout_height="1dp"
+                    android:background="@color/primary_green_light"/>
+
+                <!-- Južna Srbija -->
+                <LinearLayout
+                    android:id="@+id/rowJuzna"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:padding="12dp"
+                    android:gravity="center_vertical"
+                    android:clickable="true"
+                    android:focusable="true">
+                    <TextView android:layout_width="28dp" android:layout_height="wrap_content"
+                        android:text="6." android:textSize="13sp"
+                        android:textColor="@color/text_secondary"/>
+                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                        android:text="🌄" android:textSize="18sp" android:layout_marginEnd="8dp"/>
+                    <TextView android:layout_width="0dp" android:layout_height="wrap_content"
+                        android:layout_weight="1" android:text="Južna Srbija"
+                        android:textSize="15sp" android:textStyle="bold"
+                        android:textColor="@color/text_primary"/>
+                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                        android:text="76 ⭐" android:textSize="13sp"
+                        android:textColor="@color/text_secondary"/>
+                </LinearLayout>
+
             </LinearLayout>
+        </androidx.cardview.widget.CardView>
 
-            <View android:layout_width="match_parent" android:layout_height="1dp"
-                android:background="@color/primary_green_light"/>
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:padding="12dp"
-                android:gravity="center_vertical">
-                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                    android:text="🏙️" android:textSize="20sp" android:layout_marginEnd="12dp"/>
-                <TextView android:layout_width="0dp" android:layout_height="wrap_content"
-                    android:layout_weight="1" android:text="Beograd"
-                    android:textSize="15sp" android:textStyle="bold" android:textColor="@color/text_primary"/>
-                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                    android:text="312 ⭐" android:textSize="13sp" android:textColor="@color/primary_yellow_dark"/>
-            </LinearLayout>
-
-            <View android:layout_width="match_parent" android:layout_height="1dp"
-                android:background="@color/primary_green_light"/>
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:padding="12dp"
-                android:gravity="center_vertical">
-                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                    android:text="⛰️" android:textSize="20sp" android:layout_marginEnd="12dp"/>
-                <TextView android:layout_width="0dp" android:layout_height="wrap_content"
-                    android:layout_weight="1" android:text="Šumadija"
-                    android:textSize="15sp" android:textStyle="bold" android:textColor="@color/text_primary"/>
-                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                    android:text="178 ⭐" android:textSize="13sp" android:textColor="@color/primary_yellow_dark"/>
-            </LinearLayout>
-
-        </LinearLayout>
-    </androidx.cardview.widget.CardView>
-
-</LinearLayout>
+    </LinearLayout>
+</ScrollView>

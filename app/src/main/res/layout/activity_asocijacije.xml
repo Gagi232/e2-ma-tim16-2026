@@ -1,494 +1,624 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/background">
 
-    <androidx.constraintlayout.widget.ConstraintLayout
+    <include
+        android:id="@+id/gameTopBar"
+        layout="@layout/include_game_top_bar"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:padding="16dp">
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"/>
 
-        <TextView
-            android:id="@+id/tvGameTitle"
-            android:layout_width="wrap_content"
+    <TextView
+        android:id="@+id/tvGameTitle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Asocijacije"
+        android:textSize="20sp"
+        android:textStyle="bold"
+        android:textColor="@color/primary_green"
+        android:layout_marginTop="10dp"
+        app:layout_constraintTop_toBottomOf="@id/gameTopBar"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"/>
+
+    <!-- Score bar: Ti / Timer / Protivnik -->
+    <LinearLayout
+        android:id="@+id/llScoreBar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_marginTop="8dp"
+        android:layout_marginStart="16dp"
+        android:layout_marginEnd="16dp"
+        app:layout_constraintTop_toBottomOf="@id/tvGameTitle"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <androidx.cardview.widget.CardView
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:text="Asocijacije"
-            android:textSize="22sp"
-            android:textStyle="bold"
-            android:textColor="@color/primary_green"
-            app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"/>
-
-        <!-- Tajmer i runda -->
-        <LinearLayout
-            android:id="@+id/llHeader"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:gravity="center_vertical"
-            android:layout_marginTop="12dp"
-            app:layout_constraintTop_toBottomOf="@id/tvGameTitle">
-
-            <TextView
-                android:id="@+id/tvRound"
-                android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_marginEnd="4dp"
+            app:cardCornerRadius="12dp"
+            app:cardBackgroundColor="@color/primary_green_light">
+            <LinearLayout
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="Runda 1/2"
-                android:textSize="14sp"
-                android:textColor="@color/text_secondary"/>
-
-            <androidx.cardview.widget.CardView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                app:cardCornerRadius="12dp"
-                app:cardBackgroundColor="@color/primary_yellow">
-                <LinearLayout
+                android:orientation="vertical"
+                android:padding="6dp"
+                android:gravity="center">
+                <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:padding="8dp"
-                    android:gravity="center_vertical">
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="⏱ "
-                        android:textSize="14sp"/>
-                    <TextView
-                        android:id="@+id/tvTimer"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="120"
-                        android:textSize="18sp"
-                        android:textStyle="bold"
-                        android:textColor="@color/text_primary"/>
-                </LinearLayout>
+                    android:text="Ti"
+                    android:textSize="11sp"
+                    android:textColor="@color/text_secondary"/>
+                <TextView
+                    android:id="@+id/tvMyScore"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="0"
+                    android:textSize="22sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/primary_green"/>
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
+
+        <androidx.cardview.widget.CardView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginHorizontal="4dp"
+            app:cardCornerRadius="12dp"
+            app:cardBackgroundColor="@color/primary_yellow">
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="10dp"
+                android:gravity="center">
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="⏱"
+                    android:textSize="14sp"/>
+                <TextView
+                    android:id="@+id/tvTimer"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="120"
+                    android:textSize="22sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/text_primary"/>
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
+
+        <androidx.cardview.widget.CardView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="4dp"
+            app:cardCornerRadius="12dp"
+            app:cardBackgroundColor="@color/primary_green_light">
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="6dp"
+                android:gravity="center">
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Protivnik"
+                    android:textSize="11sp"
+                    android:textColor="@color/text_secondary"/>
+                <TextView
+                    android:id="@+id/tvOpponentScore"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="0"
+                    android:textSize="22sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/primary_green"/>
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
+
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/tvRound"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Runda 1/2"
+        android:textSize="13sp"
+        android:textColor="@color/text_secondary"
+        android:layout_marginTop="6dp"
+        android:layout_marginStart="16dp"
+        app:layout_constraintTop_toBottomOf="@id/llScoreBar"
+        app:layout_constraintStart_toStartOf="parent"/>
+
+    <!-- 4 kolone asocijacija — zauzimaju sav slobodan prostor -->
+    <LinearLayout
+        android:id="@+id/llGrid"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:orientation="horizontal"
+        android:layout_marginTop="8dp"
+        android:layout_marginStart="16dp"
+        android:layout_marginEnd="16dp"
+        app:layout_constraintTop_toBottomOf="@id/tvRound"
+        app:layout_constraintBottom_toTopOf="@id/cardFinalSolution"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <!-- Kolona 1 -->
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:layout_marginEnd="3dp"
+            android:weightSum="5">
+
+            <androidx.cardview.widget.CardView
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:layout_marginBottom="3dp"
+                app:cardCornerRadius="8dp"
+                app:cardBackgroundColor="@color/primary_green">
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:text="\?"
+                    android:gravity="center"
+                    android:textSize="18sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/white"/>
+            </androidx.cardview.widget.CardView>
+
+            <androidx.cardview.widget.CardView
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:layout_marginBottom="3dp"
+                app:cardCornerRadius="8dp"
+                app:cardBackgroundColor="@color/primary_green">
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:text="\?"
+                    android:gravity="center"
+                    android:textSize="18sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/white"/>
+            </androidx.cardview.widget.CardView>
+
+            <androidx.cardview.widget.CardView
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:layout_marginBottom="3dp"
+                app:cardCornerRadius="8dp"
+                app:cardBackgroundColor="@color/primary_green">
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:text="\?"
+                    android:gravity="center"
+                    android:textSize="18sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/white"/>
+            </androidx.cardview.widget.CardView>
+
+            <androidx.cardview.widget.CardView
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:layout_marginBottom="3dp"
+                app:cardCornerRadius="8dp"
+                app:cardBackgroundColor="@color/primary_green">
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:text="\?"
+                    android:gravity="center"
+                    android:textSize="18sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/white"/>
+            </androidx.cardview.widget.CardView>
+
+            <androidx.cardview.widget.CardView
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                app:cardCornerRadius="8dp"
+                app:cardBackgroundColor="@color/primary_yellow">
+                <TextView
+                    android:id="@+id/tvCol1Solution"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:text="\???"
+                    android:gravity="center"
+                    android:textSize="12sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/text_primary"/>
             </androidx.cardview.widget.CardView>
 
         </LinearLayout>
 
-        <!-- 4 kolone asocijacija -->
+        <!-- Kolona 2 -->
         <LinearLayout
-            android:id="@+id/llGrid"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:layout_marginTop="16dp"
-            app:layout_constraintTop_toBottomOf="@id/llHeader">
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:layout_marginHorizontal="3dp"
+            android:weightSum="5">
 
-            <!-- Kolona 1 -->
-            <LinearLayout
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
+            <androidx.cardview.widget.CardView
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
                 android:layout_weight="1"
-                android:orientation="vertical"
-                android:layout_marginEnd="4dp">
-
-                <androidx.cardview.widget.CardView
+                android:layout_marginBottom="3dp"
+                app:cardCornerRadius="8dp"
+                app:cardBackgroundColor="@color/primary_green">
+                <TextView
                     android:layout_width="match_parent"
-                    android:layout_height="60dp"
-                    android:layout_marginBottom="4dp"
-                    app:cardCornerRadius="8dp"
-                    app:cardBackgroundColor="@color/primary_green">
-                    <TextView
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:text="\?"
-                        android:gravity="center"
-                        android:textSize="20sp"
-                        android:textStyle="bold"
-                        android:textColor="@color/white"/>
-                </androidx.cardview.widget.CardView>
+                    android:layout_height="match_parent"
+                    android:text="\?"
+                    android:gravity="center"
+                    android:textSize="18sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/white"/>
+            </androidx.cardview.widget.CardView>
 
-                <androidx.cardview.widget.CardView
-                    android:layout_width="match_parent"
-                    android:layout_height="60dp"
-                    android:layout_marginBottom="4dp"
-                    app:cardCornerRadius="8dp"
-                    app:cardBackgroundColor="@color/primary_green">
-                    <TextView
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:text="\?"
-                        android:gravity="center"
-                        android:textSize="20sp"
-                        android:textStyle="bold"
-                        android:textColor="@color/white"/>
-                </androidx.cardview.widget.CardView>
-
-                <androidx.cardview.widget.CardView
-                    android:layout_width="match_parent"
-                    android:layout_height="60dp"
-                    android:layout_marginBottom="4dp"
-                    app:cardCornerRadius="8dp"
-                    app:cardBackgroundColor="@color/primary_green">
-                    <TextView
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:text="\?"
-                        android:gravity="center"
-                        android:textSize="20sp"
-                        android:textStyle="bold"
-                        android:textColor="@color/white"/>
-                </androidx.cardview.widget.CardView>
-
-                <androidx.cardview.widget.CardView
-                    android:layout_width="match_parent"
-                    android:layout_height="60dp"
-                    android:layout_marginBottom="4dp"
-                    app:cardCornerRadius="8dp"
-                    app:cardBackgroundColor="@color/primary_green">
-                    <TextView
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:text="\?"
-                        android:gravity="center"
-                        android:textSize="20sp"
-                        android:textStyle="bold"
-                        android:textColor="@color/white"/>
-                </androidx.cardview.widget.CardView>
-
-                <!-- Rešenje kolone 1 -->
-                <androidx.cardview.widget.CardView
-                    android:layout_width="match_parent"
-                    android:layout_height="60dp"
-                    app:cardCornerRadius="8dp"
-                    app:cardBackgroundColor="@color/primary_yellow">
-                    <TextView
-                        android:id="@+id/tvCol1Solution"
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:text="\???"
-                        android:gravity="center"
-                        android:textSize="14sp"
-                        android:textStyle="bold"
-                        android:textColor="@color/text_primary"/>
-                </androidx.cardview.widget.CardView>
-
-            </LinearLayout>
-
-            <!-- Kolona 2 -->
-            <LinearLayout
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
+            <androidx.cardview.widget.CardView
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
                 android:layout_weight="1"
-                android:orientation="vertical"
-                android:layout_marginHorizontal="4dp">
-
-                <androidx.cardview.widget.CardView
+                android:layout_marginBottom="3dp"
+                app:cardCornerRadius="8dp"
+                app:cardBackgroundColor="@color/primary_green">
+                <TextView
                     android:layout_width="match_parent"
-                    android:layout_height="60dp"
-                    android:layout_marginBottom="4dp"
-                    app:cardCornerRadius="8dp"
-                    app:cardBackgroundColor="@color/primary_green">
-                    <TextView
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:text="\?"
-                        android:gravity="center"
-                        android:textSize="20sp"
-                        android:textStyle="bold"
-                        android:textColor="@color/white"/>
-                </androidx.cardview.widget.CardView>
+                    android:layout_height="match_parent"
+                    android:text="\?"
+                    android:gravity="center"
+                    android:textSize="18sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/white"/>
+            </androidx.cardview.widget.CardView>
 
-                <androidx.cardview.widget.CardView
-                    android:layout_width="match_parent"
-                    android:layout_height="60dp"
-                    android:layout_marginBottom="4dp"
-                    app:cardCornerRadius="8dp"
-                    app:cardBackgroundColor="@color/primary_green">
-                    <TextView
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:text="\?"
-                        android:gravity="center"
-                        android:textSize="20sp"
-                        android:textStyle="bold"
-                        android:textColor="@color/white"/>
-                </androidx.cardview.widget.CardView>
-
-                <androidx.cardview.widget.CardView
-                    android:layout_width="match_parent"
-                    android:layout_height="60dp"
-                    android:layout_marginBottom="4dp"
-                    app:cardCornerRadius="8dp"
-                    app:cardBackgroundColor="@color/primary_green">
-                    <TextView
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:text="\?"
-                        android:gravity="center"
-                        android:textSize="20sp"
-                        android:textStyle="bold"
-                        android:textColor="@color/white"/>
-                </androidx.cardview.widget.CardView>
-
-                <androidx.cardview.widget.CardView
-                    android:layout_width="match_parent"
-                    android:layout_height="60dp"
-                    android:layout_marginBottom="4dp"
-                    app:cardCornerRadius="8dp"
-                    app:cardBackgroundColor="@color/primary_green">
-                    <TextView
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:text="\?"
-                        android:gravity="center"
-                        android:textSize="20sp"
-                        android:textStyle="bold"
-                        android:textColor="@color/white"/>
-                </androidx.cardview.widget.CardView>
-
-                <androidx.cardview.widget.CardView
-                    android:layout_width="match_parent"
-                    android:layout_height="60dp"
-                    app:cardCornerRadius="8dp"
-                    app:cardBackgroundColor="@color/primary_yellow">
-                    <TextView
-                        android:id="@+id/tvCol2Solution"
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:text="\???"
-                        android:gravity="center"
-                        android:textSize="14sp"
-                        android:textStyle="bold"
-                        android:textColor="@color/text_primary"/>
-                </androidx.cardview.widget.CardView>
-
-            </LinearLayout>
-
-            <!-- Kolona 3 -->
-            <LinearLayout
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
+            <androidx.cardview.widget.CardView
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
                 android:layout_weight="1"
-                android:orientation="vertical"
-                android:layout_marginHorizontal="4dp">
-
-                <androidx.cardview.widget.CardView
+                android:layout_marginBottom="3dp"
+                app:cardCornerRadius="8dp"
+                app:cardBackgroundColor="@color/primary_green">
+                <TextView
                     android:layout_width="match_parent"
-                    android:layout_height="60dp"
-                    android:layout_marginBottom="4dp"
-                    app:cardCornerRadius="8dp"
-                    app:cardBackgroundColor="@color/primary_green">
-                    <TextView
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:text="\?"
-                        android:gravity="center"
-                        android:textSize="20sp"
-                        android:textStyle="bold"
-                        android:textColor="@color/white"/>
-                </androidx.cardview.widget.CardView>
+                    android:layout_height="match_parent"
+                    android:text="\?"
+                    android:gravity="center"
+                    android:textSize="18sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/white"/>
+            </androidx.cardview.widget.CardView>
 
-                <androidx.cardview.widget.CardView
-                    android:layout_width="match_parent"
-                    android:layout_height="60dp"
-                    android:layout_marginBottom="4dp"
-                    app:cardCornerRadius="8dp"
-                    app:cardBackgroundColor="@color/primary_green">
-                    <TextView
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:text="\?"
-                        android:gravity="center"
-                        android:textSize="20sp"
-                        android:textStyle="bold"
-                        android:textColor="@color/white"/>
-                </androidx.cardview.widget.CardView>
-
-                <androidx.cardview.widget.CardView
-                    android:layout_width="match_parent"
-                    android:layout_height="60dp"
-                    android:layout_marginBottom="4dp"
-                    app:cardCornerRadius="8dp"
-                    app:cardBackgroundColor="@color/primary_green">
-                    <TextView
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:text="\?"
-                        android:gravity="center"
-                        android:textSize="20sp"
-                        android:textStyle="bold"
-                        android:textColor="@color/white"/>
-                </androidx.cardview.widget.CardView>
-
-                <androidx.cardview.widget.CardView
-                    android:layout_width="match_parent"
-                    android:layout_height="60dp"
-                    android:layout_marginBottom="4dp"
-                    app:cardCornerRadius="8dp"
-                    app:cardBackgroundColor="@color/primary_green">
-                    <TextView
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:text="\?"
-                        android:gravity="center"
-                        android:textSize="20sp"
-                        android:textStyle="bold"
-                        android:textColor="@color/white"/>
-                </androidx.cardview.widget.CardView>
-
-                <androidx.cardview.widget.CardView
-                    android:layout_width="match_parent"
-                    android:layout_height="60dp"
-                    app:cardCornerRadius="8dp"
-                    app:cardBackgroundColor="@color/primary_yellow">
-                    <TextView
-                        android:id="@+id/tvCol3Solution"
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:text="\???"
-                        android:gravity="center"
-                        android:textSize="14sp"
-                        android:textStyle="bold"
-                        android:textColor="@color/text_primary"/>
-                </androidx.cardview.widget.CardView>
-
-            </LinearLayout>
-
-            <!-- Kolona 4 -->
-            <LinearLayout
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
+            <androidx.cardview.widget.CardView
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
                 android:layout_weight="1"
-                android:orientation="vertical"
-                android:layout_marginStart="4dp">
-
-                <androidx.cardview.widget.CardView
+                android:layout_marginBottom="3dp"
+                app:cardCornerRadius="8dp"
+                app:cardBackgroundColor="@color/primary_green">
+                <TextView
                     android:layout_width="match_parent"
-                    android:layout_height="60dp"
-                    android:layout_marginBottom="4dp"
-                    app:cardCornerRadius="8dp"
-                    app:cardBackgroundColor="@color/primary_green">
-                    <TextView
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:text="\?"
-                        android:gravity="center"
-                        android:textSize="20sp"
-                        android:textStyle="bold"
-                        android:textColor="@color/white"/>
-                </androidx.cardview.widget.CardView>
+                    android:layout_height="match_parent"
+                    android:text="\?"
+                    android:gravity="center"
+                    android:textSize="18sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/white"/>
+            </androidx.cardview.widget.CardView>
 
-                <androidx.cardview.widget.CardView
+            <androidx.cardview.widget.CardView
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                app:cardCornerRadius="8dp"
+                app:cardBackgroundColor="@color/primary_yellow">
+                <TextView
+                    android:id="@+id/tvCol2Solution"
                     android:layout_width="match_parent"
-                    android:layout_height="60dp"
-                    android:layout_marginBottom="4dp"
-                    app:cardCornerRadius="8dp"
-                    app:cardBackgroundColor="@color/primary_green">
-                    <TextView
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:text="\?"
-                        android:gravity="center"
-                        android:textSize="20sp"
-                        android:textStyle="bold"
-                        android:textColor="@color/white"/>
-                </androidx.cardview.widget.CardView>
-
-                <androidx.cardview.widget.CardView
-                    android:layout_width="match_parent"
-                    android:layout_height="60dp"
-                    android:layout_marginBottom="4dp"
-                    app:cardCornerRadius="8dp"
-                    app:cardBackgroundColor="@color/primary_green">
-                    <TextView
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:text="\?"
-                        android:gravity="center"
-                        android:textSize="20sp"
-                        android:textStyle="bold"
-                        android:textColor="@color/white"/>
-                </androidx.cardview.widget.CardView>
-
-                <androidx.cardview.widget.CardView
-                    android:layout_width="match_parent"
-                    android:layout_height="60dp"
-                    android:layout_marginBottom="4dp"
-                    app:cardCornerRadius="8dp"
-                    app:cardBackgroundColor="@color/primary_green">
-                    <TextView
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:text="\?"
-                        android:gravity="center"
-                        android:textSize="20sp"
-                        android:textStyle="bold"
-                        android:textColor="@color/white"/>
-                </androidx.cardview.widget.CardView>
-
-                <androidx.cardview.widget.CardView
-                    android:layout_width="match_parent"
-                    android:layout_height="60dp"
-                    app:cardCornerRadius="8dp"
-                    app:cardBackgroundColor="@color/primary_yellow">
-                    <TextView
-                        android:id="@+id/tvCol4Solution"
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:text="\???"
-                        android:gravity="center"
-                        android:textSize="14sp"
-                        android:textStyle="bold"
-                        android:textColor="@color/text_primary"/>
-                </androidx.cardview.widget.CardView>
-
-            </LinearLayout>
+                    android:layout_height="match_parent"
+                    android:text="\???"
+                    android:gravity="center"
+                    android:textSize="12sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/text_primary"/>
+            </androidx.cardview.widget.CardView>
 
         </LinearLayout>
 
-        <!-- Konačno rešenje -->
-        <androidx.cardview.widget.CardView
-            android:id="@+id/cardFinalSolution"
-            android:layout_width="match_parent"
-            android:layout_height="60dp"
-            android:layout_marginTop="8dp"
-            app:cardCornerRadius="12dp"
-            app:cardBackgroundColor="@color/primary_green_dark"
-            app:layout_constraintTop_toBottomOf="@id/llGrid">
-            <TextView
-                android:id="@+id/tvFinalSolution"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:text="KONAČNO REŠENJE"
-                android:gravity="center"
-                android:textSize="16sp"
-                android:textStyle="bold"
-                android:textColor="@color/white"/>
-        </androidx.cardview.widget.CardView>
+        <!-- Kolona 3 -->
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:layout_marginHorizontal="3dp"
+            android:weightSum="5">
 
-        <!-- Polje za unos -->
-        <com.google.android.material.textfield.TextInputLayout
-            android:id="@+id/tilAnswer"
-            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:hint="Unesite odgovor..."
-            android:layout_marginTop="12dp"
-            app:boxStrokeColor="@color/primary_green"
-            app:hintTextColor="@color/primary_green"
-            app:layout_constraintTop_toBottomOf="@id/cardFinalSolution">
-            <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/etAnswer"
+            <androidx.cardview.widget.CardView
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"/>
-        </com.google.android.material.textfield.TextInputLayout>
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:layout_marginBottom="3dp"
+                app:cardCornerRadius="8dp"
+                app:cardBackgroundColor="@color/primary_green">
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:text="\?"
+                    android:gravity="center"
+                    android:textSize="18sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/white"/>
+            </androidx.cardview.widget.CardView>
+
+            <androidx.cardview.widget.CardView
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:layout_marginBottom="3dp"
+                app:cardCornerRadius="8dp"
+                app:cardBackgroundColor="@color/primary_green">
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:text="\?"
+                    android:gravity="center"
+                    android:textSize="18sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/white"/>
+            </androidx.cardview.widget.CardView>
+
+            <androidx.cardview.widget.CardView
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:layout_marginBottom="3dp"
+                app:cardCornerRadius="8dp"
+                app:cardBackgroundColor="@color/primary_green">
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:text="\?"
+                    android:gravity="center"
+                    android:textSize="18sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/white"/>
+            </androidx.cardview.widget.CardView>
+
+            <androidx.cardview.widget.CardView
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:layout_marginBottom="3dp"
+                app:cardCornerRadius="8dp"
+                app:cardBackgroundColor="@color/primary_green">
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:text="\?"
+                    android:gravity="center"
+                    android:textSize="18sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/white"/>
+            </androidx.cardview.widget.CardView>
+
+            <androidx.cardview.widget.CardView
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                app:cardCornerRadius="8dp"
+                app:cardBackgroundColor="@color/primary_yellow">
+                <TextView
+                    android:id="@+id/tvCol3Solution"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:text="\???"
+                    android:gravity="center"
+                    android:textSize="12sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/text_primary"/>
+            </androidx.cardview.widget.CardView>
+
+        </LinearLayout>
+
+        <!-- Kolona 4 -->
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:layout_marginStart="3dp"
+            android:weightSum="5">
+
+            <androidx.cardview.widget.CardView
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:layout_marginBottom="3dp"
+                app:cardCornerRadius="8dp"
+                app:cardBackgroundColor="@color/primary_green">
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:text="\?"
+                    android:gravity="center"
+                    android:textSize="18sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/white"/>
+            </androidx.cardview.widget.CardView>
+
+            <androidx.cardview.widget.CardView
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:layout_marginBottom="3dp"
+                app:cardCornerRadius="8dp"
+                app:cardBackgroundColor="@color/primary_green">
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:text="\?"
+                    android:gravity="center"
+                    android:textSize="18sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/white"/>
+            </androidx.cardview.widget.CardView>
+
+            <androidx.cardview.widget.CardView
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:layout_marginBottom="3dp"
+                app:cardCornerRadius="8dp"
+                app:cardBackgroundColor="@color/primary_green">
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:text="\?"
+                    android:gravity="center"
+                    android:textSize="18sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/white"/>
+            </androidx.cardview.widget.CardView>
+
+            <androidx.cardview.widget.CardView
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:layout_marginBottom="3dp"
+                app:cardCornerRadius="8dp"
+                app:cardBackgroundColor="@color/primary_green">
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:text="\?"
+                    android:gravity="center"
+                    android:textSize="18sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/white"/>
+            </androidx.cardview.widget.CardView>
+
+            <androidx.cardview.widget.CardView
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                app:cardCornerRadius="8dp"
+                app:cardBackgroundColor="@color/primary_yellow">
+                <TextView
+                    android:id="@+id/tvCol4Solution"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:text="\???"
+                    android:gravity="center"
+                    android:textSize="12sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/text_primary"/>
+            </androidx.cardview.widget.CardView>
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+    <!-- Konačno rešenje -->
+    <androidx.cardview.widget.CardView
+        android:id="@+id/cardFinalSolution"
+        android:layout_width="match_parent"
+        android:layout_height="52dp"
+        android:layout_marginStart="16dp"
+        android:layout_marginEnd="16dp"
+        android:layout_marginBottom="8dp"
+        app:cardCornerRadius="12dp"
+        app:cardBackgroundColor="@color/primary_green_dark"
+        app:layout_constraintBottom_toTopOf="@id/tilAnswer"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+        <TextView
+            android:id="@+id/tvFinalSolution"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:text="KONAČNO REŠENJE"
+            android:gravity="center"
+            android:textSize="15sp"
+            android:textStyle="bold"
+            android:textColor="@color/white"/>
+    </androidx.cardview.widget.CardView>
+
+    <!-- Polje za unos -->
+    <com.google.android.material.textfield.TextInputLayout
+        android:id="@+id/tilAnswer"
+        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Unesite odgovor..."
+        android:layout_marginStart="16dp"
+        android:layout_marginEnd="16dp"
+        android:layout_marginBottom="8dp"
+        app:boxStrokeColor="@color/primary_green"
+        app:hintTextColor="@color/primary_green"
+        app:layout_constraintBottom_toTopOf="@id/llBottomButtons"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+        <com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/etAnswer"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"/>
+    </com.google.android.material.textfield.TextInputLayout>
+
+    <LinearLayout
+        android:id="@+id/llBottomButtons"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_marginStart="16dp"
+        android:layout_marginEnd="16dp"
+        android:layout_marginBottom="16dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnLeave"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Napusti igru"
+            android:layout_marginEnd="8dp"
+            android:textColor="@color/primary_green"
+            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+            app:strokeColor="@color/primary_green"/>
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnFinish"
-            android:layout_width="match_parent"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
+            android:layout_weight="1"
             android:text="Sledeća igra →"
-            android:layout_marginTop="12dp"
-            style="@style/ButtonPrimary"
-            app:layout_constraintTop_toBottomOf="@id/tilAnswer"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"/>
+            style="@style/ButtonPrimary"/>
 
-    </androidx.constraintlayout.widget.ConstraintLayout>
-</ScrollView>
+    </LinearLayout>
+
+</androidx.constraintlayout.widget.ConstraintLayout>

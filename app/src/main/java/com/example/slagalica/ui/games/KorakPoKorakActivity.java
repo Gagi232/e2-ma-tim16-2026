@@ -52,12 +52,16 @@ public class KorakPoKorakActivity extends AppCompatActivity {
         );
 
         btnPredaj.setOnClickListener(v -> {
-            startActivity(new Intent(this, ResultsActivity.class));
+            Intent intent = new Intent(this, ResultsActivity.class);
+            intent.putExtra("isGuest", getIntent().getBooleanExtra("isGuest", false));
+            startActivity(intent);
             finish();
         });
 
         btnFinish.setOnClickListener(v -> {
-            startActivity(new Intent(this, ResultsActivity.class));
+            Intent intent = new Intent(this, ResultsActivity.class);
+            intent.putExtra("isGuest", getIntent().getBooleanExtra("isGuest", false));
+            startActivity(intent);
             finish();
         });
     }

@@ -116,6 +116,15 @@
                     android:textSize="14sp"
                     android:layout_marginTop="8dp"
                     android:layout_gravity="end"/>
+                <ProgressBar
+                    android:id="@+id/progressBar"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center"
+                    android:visibility="gone"
+                    android:indeterminateTint="@color/primary_green"
+                    android:layout_marginTop="8dp"/>
+
 
                 <!-- Dugme prijava -->
                 <com.google.android.material.button.MaterialButton

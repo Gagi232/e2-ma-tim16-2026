@@ -134,7 +134,14 @@
                         android:layout_height="wrap_content"
                         android:inputType="textPassword"/>
                 </com.google.android.material.textfield.TextInputLayout>
-
+                <ProgressBar
+                    android:id="@+id/progressBar"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center"
+                    android:visibility="gone"
+                    android:indeterminateTint="@color/primary_green"
+                    android:layout_marginTop="8dp"/>
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btnRegister"
                     android:layout_width="match_parent"

@@ -82,7 +82,6 @@ public class ProfileActivity extends AppCompatActivity {
     }
 
     private void displayUser(User user) {
-        // Avatar emoji
         if (tvAvatar != null) {
             String avatar = user.getAvatarUrl();
             tvAvatar.setText(avatar != null && !avatar.isEmpty() ? avatar : "👤");
@@ -93,8 +92,18 @@ public class ProfileActivity extends AppCompatActivity {
         tvTokens.setText(String.valueOf(user.getTokens()));
         tvStars.setText(String.valueOf(user.getStars()));
 
-        int league = Math.max(0, Math.min(user.getLeague(), LEAGUE_NAMES.length - 1));
-        tvLeague.setText(LEAGUE_ICONS[league] + " " + LEAGUE_NAMES[league]);
+        int league = com.example.slagalica.logic.LeagueLogic.calculateLeague(user.getStars());
+
+        // Ako se liga promenila od poslednjeg puta, ažuriraj u bazi
+        if (league != user.getLeague()) {
+            userRepo.updateField("league", league, new UserRepository.Callback<Void>() {
+                @Override public void onSuccess(Void r) {}
+                @Override public void onError(Exception e) {}
+            });
+        }
+
+        tvLeague.setText(com.example.slagalica.logic.LeagueLogic.getLeagueIcon(league) + " "
+                + com.example.slagalica.logic.LeagueLogic.getLeagueName(league));
         tvRegion.setText(user.getRegion() != null ? "📍 " + user.getRegion() : "📍 —");
     }
 
@@ -176,4 +185,5 @@ public class ProfileActivity extends AppCompatActivity {
         startActivity(intent);
         finish();
     }
+
 }

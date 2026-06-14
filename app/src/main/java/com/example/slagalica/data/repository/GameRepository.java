@@ -13,7 +13,8 @@ public class GameRepository {
 
     private static final String KZZ      = "koZnaZna";
     private static final String SPOJNICE = "spojnice";
-
+    private static final String ASOCIJACIJE = "asocijacije";
+    private static final String SKOCKO      = "skocko";
     private final FirebaseFirestore db = FirebaseFirestore.getInstance();
 
     // Dva interfejsa umesto jednog — rade sa lambda sintaksom
@@ -88,4 +89,49 @@ public class GameRepository {
                 })
                 .addOnFailureListener(onError::run);
     }
+
+    public void getRandomAssociation(OnSuccess<com.example.slagalica.data.model.Association> onSuccess, OnError onError) {
+        db.collection(ASOCIJACIJE).get()
+                .addOnSuccessListener(snap -> {
+                    List<com.example.slagalica.data.model.Association> all = new ArrayList<>();
+                    for (QueryDocumentSnapshot doc : snap) {
+                        com.example.slagalica.data.model.Association a = doc.toObject(com.example.slagalica.data.model.Association.class);
+                        a.setId(doc.getId());
+                        all.add(a);
+                    }
+                    if (all.isEmpty()) { onError.run(new Exception("Nema asocijacija")); return; }
+                    Collections.shuffle(all);
+                    onSuccess.run(all.get(0));
+                })
+                .addOnFailureListener(onError::run);
+    }
+
+    public void getAssociationById(String id, OnSuccess<com.example.slagalica.data.model.Association> onSuccess, OnError onError) {
+        db.collection(ASOCIJACIJE).document(id).get()
+                .addOnSuccessListener(doc -> {
+                    if (!doc.exists()) { onError.run(new Exception("Nije pronadjeno")); return; }
+                    com.example.slagalica.data.model.Association a = doc.toObject(com.example.slagalica.data.model.Association.class);
+                    a.setId(doc.getId());
+                    onSuccess.run(a);
+                })
+                .addOnFailureListener(onError::run);
+    }
+
+    public void getRandomSkockoCombo(OnSuccess<com.example.slagalica.data.model.SkockoCombo> onSuccess, OnError onError) {
+        db.collection(SKOCKO).get()
+                .addOnSuccessListener(snap -> {
+                    List<com.example.slagalica.data.model.SkockoCombo> all = new ArrayList<>();
+                    for (QueryDocumentSnapshot doc : snap) {
+                        com.example.slagalica.data.model.SkockoCombo c = doc.toObject(com.example.slagalica.data.model.SkockoCombo.class);
+                        c.setId(doc.getId());
+                        all.add(c);
+                    }
+                    if (all.isEmpty()) { onError.run(new Exception("Nema kombinacija")); return; }
+                    Collections.shuffle(all);
+                    onSuccess.run(all.get(0));
+                })
+                .addOnFailureListener(onError::run);
+    }
+
+
 }

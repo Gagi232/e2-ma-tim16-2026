@@ -12,8 +12,9 @@ public class DatabaseSeeder {
     public static void seedAll() {
         seedKoZnaZna();
         seedSpojnice();
+        seedAsocijacije();
+        seedSkocko();
     }
-
     public static void seedKoZnaZna() {
         Object[][] data = {
                 {"Koji grad je prestonica Srbije?",
@@ -79,5 +80,45 @@ public class DatabaseSeeder {
                 new SpojnicePar("Jovan Jovanović Zmaj",     "Đulići"),
                 new SpojnicePar("Laza Lazarević",           "Školska ikona")));
         db.collection("spojnice").add(s3);
+    }
+    public static void seedAsocijacije() {
+        com.example.slagalica.data.model.Association a = new com.example.slagalica.data.model.Association();
+        a.setCol1(Arrays.asList("CRVENO", "PLAVO", "ZELENO", "ŽUTO"));
+        a.setCol1Solution("BOJE");
+        a.setCol2(Arrays.asList("LOPTA", "MREŽA", "GOL", "TIM"));
+        a.setCol2Solution("FUDBAL");
+        a.setCol3(Arrays.asList("KAFA", "ŠEĆER", "MLEKO", "ŠOLJA"));
+        a.setCol3Solution("DORUČAK");
+        a.setCol4(Arrays.asList("KNJIGA", "OLOVKA", "TABLA", "ĐAK"));
+        a.setCol4Solution("ŠKOLA");
+        a.setFinalSolution("SRBIJA");
+        db.collection("asocijacije").add(a);
+
+        com.example.slagalica.data.model.Association a2 = new com.example.slagalica.data.model.Association();
+        a2.setCol1(Arrays.asList("SUNCE", "PLAŽA", "PESAK", "MORE"));
+        a2.setCol1Solution("LETO");
+        a2.setCol2(Arrays.asList("SNEG", "SKIJE", "HLADNO", "JAKNA"));
+        a2.setCol2Solution("ZIMA");
+        a2.setCol3(Arrays.asList("CVEĆE", "PUPOLJAK", "TOPLO", "MART"));
+        a2.setCol3Solution("PROLEĆE");
+        a2.setCol4(Arrays.asList("LIŠĆE", "ŽETVA", "OKTOBAR", "VETAR"));
+        a2.setCol4Solution("JESEN");
+        a2.setFinalSolution("GODIŠNJA DOBA");
+        db.collection("asocijacije").add(a2);
+    }
+
+    public static void seedSkocko() {
+        String[] symbols = {"⬛","⬜","🔴","💛","🔺","⭐"};
+        java.util.Random r = new java.util.Random();
+
+        for (int i = 0; i < 5; i++) {
+            java.util.List<String> combo = new java.util.ArrayList<>();
+            for (int j = 0; j < 4; j++) {
+                combo.add(symbols[r.nextInt(symbols.length)]);
+            }
+            com.example.slagalica.data.model.SkockoCombo sc = new com.example.slagalica.data.model.SkockoCombo();
+            sc.setCombination(combo);
+            db.collection("skocko").add(sc);
+        }
     }
 }

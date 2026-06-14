@@ -39,8 +39,9 @@ dependencies {
     implementation libs.firebase.analytics
     implementation libs.firebase.auth
     implementation libs.firebase.firestore
-    implementation 'com.google.firebase:firebase-storage:20.3.0'
-
+    implementation 'com.google.firebase:firebase-database'
+    implementation 'com.google.firebase:firebase-storage'
+    implementation 'com.google.firebase:firebase-database'
     implementation libs.appcompat
     implementation libs.material
     implementation libs.activity.ktx

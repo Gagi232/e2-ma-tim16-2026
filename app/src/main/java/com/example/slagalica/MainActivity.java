@@ -9,6 +9,8 @@ import android.widget.Toast;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.fragment.app.Fragment;
+
+import com.example.slagalica.data.remote.DatabaseSeeder;
 import com.example.slagalica.ui.friends.FriendsFragment;
 import com.example.slagalica.ui.games.KoZnaZnaActivity;
 import com.example.slagalica.ui.leaderboard.LeaderboardFragment;
@@ -25,9 +27,8 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-
         TextView tvLeague = findViewById(R.id.tvLeague);
-
+        DatabaseSeeder.seedAll();
         tvLeague.setOnClickListener(v -> showLeagueDialog());
         ImageView ivProfile = findViewById(R.id.ivProfile);
         MaterialButton btnPlay = findViewById(R.id.btnPlay);

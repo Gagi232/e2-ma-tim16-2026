@@ -42,14 +42,14 @@
                     android:layout_width="100dp"
                     android:layout_height="100dp">
 
-                    <ImageView
+                    <TextView
                         android:id="@+id/ivAvatar"
                         android:layout_width="100dp"
                         android:layout_height="100dp"
-                        android:src="@mipmap/ic_launcher"
-                        android:scaleType="centerCrop"
-                        android:background="@drawable/bg_avatar_gold"/>
-
+                        android:gravity="center"
+                        android:textSize="48sp"
+                        android:text="👤"
+                        android:background="@drawable/bg_avatar"/>
                     <ImageView
                         android:id="@+id/ivChangeAvatar"
                         android:layout_width="28dp"

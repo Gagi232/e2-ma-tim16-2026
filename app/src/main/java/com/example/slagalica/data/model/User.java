@@ -10,6 +10,7 @@ public class User {
     private String region;
     private String avatarUrl;
     private long createdAt;
+    private boolean online;
 
     public User() {}
 
@@ -53,4 +54,8 @@ public class User {
 
     public long getCreatedAt() { return createdAt; }
     public void setCreatedAt(long createdAt) { this.createdAt = createdAt; }
+
+
+    public boolean isOnline() { return online; }
+    public void setOnline(boolean online) { this.online = online; }
 }

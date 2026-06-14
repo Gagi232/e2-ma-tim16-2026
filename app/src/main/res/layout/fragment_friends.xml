@@ -47,114 +47,11 @@
 
     </LinearLayout>
 
-    <!-- Prijatelj 1 -->
-    <androidx.cardview.widget.CardView
+    <!-- Lista prijatelja — dinamički se puni -->
+    <LinearLayout
+        android:id="@+id/llFriendsList"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="8dp"
-        app:cardCornerRadius="12dp"
-        app:cardBackgroundColor="@color/white">
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:padding="16dp"
-            android:gravity="center_vertical">
-            <ImageView
-                android:layout_width="48dp"
-                android:layout_height="48dp"
-                android:src="@mipmap/ic_launcher"
-                android:background="@drawable/bg_avatar"
-                android:layout_marginEnd="12dp"/>
-            <LinearLayout
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:orientation="vertical">
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="prijatelj_1"
-                    android:textSize="16sp"
-                    android:textStyle="bold"
-                    android:textColor="@color/text_primary"/>
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="🏆 Liga 2 · Rang 1 · 150 ⭐"
-                    android:textSize="12sp"
-                    android:textColor="@color/text_secondary"/>
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="🟢 Online"
-                    android:textSize="12sp"
-                    android:textColor="@color/correct_answer"/>
-            </LinearLayout>
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnPlay1"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Igraj"
-                android:textSize="12sp"
-                style="@style/ButtonPrimary"
-                app:cornerRadius="8dp"/>
-        </LinearLayout>
-    </androidx.cardview.widget.CardView>
-
-    <!-- Prijatelj 2 -->
-    <androidx.cardview.widget.CardView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginBottom="8dp"
-        app:cardCornerRadius="12dp"
-        app:cardBackgroundColor="@color/white">
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:padding="16dp"
-            android:gravity="center_vertical">
-            <ImageView
-                android:layout_width="48dp"
-                android:layout_height="48dp"
-                android:src="@mipmap/ic_launcher"
-                android:background="@drawable/bg_avatar"
-                android:layout_marginEnd="12dp"/>
-            <LinearLayout
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:orientation="vertical">
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="prijatelj_2"
-                    android:textSize="16sp"
-                    android:textStyle="bold"
-                    android:textColor="@color/text_primary"/>
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="🏆 Liga 1 · Rang 2 · 80 ⭐"
-                    android:textSize="12sp"
-                    android:textColor="@color/text_secondary"/>
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="🔴 Offline"
-                    android:textSize="12sp"
-                    android:textColor="@color/wrong_answer"/>
-            </LinearLayout>
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnPlay2"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Igraj"
-                android:textSize="12sp"
-                style="@style/ButtonSecondary"
-                app:cornerRadius="8dp"/>
-        </LinearLayout>
-    </androidx.cardview.widget.CardView>
+        android:orientation="vertical"/>
 
 </LinearLayout>

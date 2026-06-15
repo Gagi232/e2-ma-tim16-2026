@@ -40,4 +40,31 @@ public class SkockoLogic {
         }
         return matches;
     }
+
+    /** Koliko simbola postoji u resenju ali je na pogresnom mestu (zuti) */
+    public static int countWrongPosition(List<String> guess, List<String> solution) {
+        int wrongPos = 0;
+        // Prvo oznaci tacne (crveni) da ih ne brojimo ponovo
+        boolean[] usedInSolution = new boolean[solution.size()];
+        boolean[] usedInGuess    = new boolean[guess.size()];
+
+        for (int i = 0; i < guess.size(); i++) {
+            if (guess.get(i).equals(solution.get(i))) {
+                usedInSolution[i] = true;
+                usedInGuess[i]    = true;
+            }
+        }
+        // Sad trazi simbole koji postoje ali su na pogresnom mestu
+        for (int i = 0; i < guess.size(); i++) {
+            if (usedInGuess[i]) continue;
+            for (int j = 0; j < solution.size(); j++) {
+                if (!usedInSolution[j] && guess.get(i).equals(solution.get(j))) {
+                    wrongPos++;
+                    usedInSolution[j] = true;
+                    break;
+                }
+            }
+        }
+        return wrongPos;
+    }
 }

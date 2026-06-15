@@ -188,7 +188,12 @@
             <TextView android:id="@+id/tvAttempt1Field2" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:layout_marginHorizontal="2dp" android:gravity="center" android:text="\?" android:textSize="18sp" android:background="@color/primary_green_light"/>
             <TextView android:id="@+id/tvAttempt1Field3" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:layout_marginHorizontal="2dp" android:gravity="center" android:text="\?" android:textSize="18sp" android:background="@color/primary_green_light"/>
             <TextView android:id="@+id/tvAttempt1Field4" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:layout_marginHorizontal="2dp" android:gravity="center" android:text="\?" android:textSize="18sp" android:background="@color/primary_green_light"/>
-            <TextView android:id="@+id/tvAttempt1Matches" android:layout_width="52dp" android:layout_height="wrap_content" android:text="0/4 ✓" android:textSize="10sp" android:textColor="@color/text_secondary" android:gravity="center"/>
+            <LinearLayout
+                android:id="@+id/llFeedback1"
+                android:layout_width="52dp"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center"/>
         </LinearLayout>
         <!-- Pokušaj 2 -->
         <LinearLayout android:layout_width="match_parent" android:layout_height="0dp"
@@ -199,8 +204,12 @@
             <TextView android:id="@+id/tvAttempt2Field2" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:layout_marginHorizontal="2dp" android:gravity="center" android:text="\?" android:textSize="18sp" android:background="@color/primary_green_light"/>
             <TextView android:id="@+id/tvAttempt2Field3" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:layout_marginHorizontal="2dp" android:gravity="center" android:text="\?" android:textSize="18sp" android:background="@color/primary_green_light"/>
             <TextView android:id="@+id/tvAttempt2Field4" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:layout_marginHorizontal="2dp" android:gravity="center" android:text="\?" android:textSize="18sp" android:background="@color/primary_green_light"/>
-            <TextView android:id="@+id/tvAttempt2Matches" android:layout_width="52dp" android:layout_height="wrap_content" android:text="0/4 ✓" android:textSize="10sp" android:textColor="@color/text_secondary" android:gravity="center"/>
-        </LinearLayout>
+            <LinearLayout
+                android:id="@+id/llFeedback2"
+                android:layout_width="52dp"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center"/>        </LinearLayout>
         <!-- Pokušaj 3 -->
         <LinearLayout android:layout_width="match_parent" android:layout_height="0dp"
             android:layout_weight="1" android:orientation="horizontal" android:gravity="center_vertical"
@@ -210,8 +219,12 @@
             <TextView android:id="@+id/tvAttempt3Field2" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:layout_marginHorizontal="2dp" android:gravity="center" android:text="\?" android:textSize="18sp" android:background="@color/primary_green_light"/>
             <TextView android:id="@+id/tvAttempt3Field3" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:layout_marginHorizontal="2dp" android:gravity="center" android:text="\?" android:textSize="18sp" android:background="@color/primary_green_light"/>
             <TextView android:id="@+id/tvAttempt3Field4" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:layout_marginHorizontal="2dp" android:gravity="center" android:text="\?" android:textSize="18sp" android:background="@color/primary_green_light"/>
-            <TextView android:id="@+id/tvAttempt3Matches" android:layout_width="52dp" android:layout_height="wrap_content" android:text="0/4 ✓" android:textSize="10sp" android:textColor="@color/text_secondary" android:gravity="center"/>
-        </LinearLayout>
+            <LinearLayout
+                android:id="@+id/llFeedback3"
+                android:layout_width="52dp"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center"/>        </LinearLayout>
         <!-- Pokušaj 4 -->
         <LinearLayout android:layout_width="match_parent" android:layout_height="0dp"
             android:layout_weight="1" android:orientation="horizontal" android:gravity="center_vertical"
@@ -221,8 +234,12 @@
             <TextView android:id="@+id/tvAttempt4Field2" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:layout_marginHorizontal="2dp" android:gravity="center" android:text="\?" android:textSize="18sp" android:background="@color/primary_green_light"/>
             <TextView android:id="@+id/tvAttempt4Field3" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:layout_marginHorizontal="2dp" android:gravity="center" android:text="\?" android:textSize="18sp" android:background="@color/primary_green_light"/>
             <TextView android:id="@+id/tvAttempt4Field4" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:layout_marginHorizontal="2dp" android:gravity="center" android:text="\?" android:textSize="18sp" android:background="@color/primary_green_light"/>
-            <TextView android:id="@+id/tvAttempt4Matches" android:layout_width="52dp" android:layout_height="wrap_content" android:text="0/4 ✓" android:textSize="10sp" android:textColor="@color/text_secondary" android:gravity="center"/>
-        </LinearLayout>
+            <LinearLayout
+                android:id="@+id/llFeedback4"
+                android:layout_width="52dp"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center"/>        </LinearLayout>
         <!-- Pokušaj 5 -->
         <LinearLayout android:layout_width="match_parent" android:layout_height="0dp"
             android:layout_weight="1" android:orientation="horizontal" android:gravity="center_vertical"
@@ -232,8 +249,12 @@
             <TextView android:id="@+id/tvAttempt5Field2" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:layout_marginHorizontal="2dp" android:gravity="center" android:text="\?" android:textSize="18sp" android:background="@color/primary_green_light"/>
             <TextView android:id="@+id/tvAttempt5Field3" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:layout_marginHorizontal="2dp" android:gravity="center" android:text="\?" android:textSize="18sp" android:background="@color/primary_green_light"/>
             <TextView android:id="@+id/tvAttempt5Field4" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:layout_marginHorizontal="2dp" android:gravity="center" android:text="\?" android:textSize="18sp" android:background="@color/primary_green_light"/>
-            <TextView android:id="@+id/tvAttempt5Matches" android:layout_width="52dp" android:layout_height="wrap_content" android:text="0/4 ✓" android:textSize="10sp" android:textColor="@color/text_secondary" android:gravity="center"/>
-        </LinearLayout>
+            <LinearLayout
+                android:id="@+id/llFeedback5"
+                android:layout_width="52dp"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center"/>        </LinearLayout>
         <!-- Pokušaj 6 -->
         <LinearLayout android:layout_width="match_parent" android:layout_height="0dp"
             android:layout_weight="1" android:orientation="horizontal" android:gravity="center_vertical"
@@ -243,14 +264,17 @@
             <TextView android:id="@+id/tvAttempt6Field2" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:layout_marginHorizontal="2dp" android:gravity="center" android:text="\?" android:textSize="18sp" android:background="@color/primary_green_light"/>
             <TextView android:id="@+id/tvAttempt6Field3" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:layout_marginHorizontal="2dp" android:gravity="center" android:text="\?" android:textSize="18sp" android:background="@color/primary_green_light"/>
             <TextView android:id="@+id/tvAttempt6Field4" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:layout_marginHorizontal="2dp" android:gravity="center" android:text="\?" android:textSize="18sp" android:background="@color/primary_green_light"/>
-            <TextView android:id="@+id/tvAttempt6Matches" android:layout_width="52dp" android:layout_height="wrap_content" android:text="0/4 ✓" android:textSize="10sp" android:textColor="@color/text_secondary" android:gravity="center"/>
-        </LinearLayout>
+            <LinearLayout
+                android:id="@+id/llFeedback6"
+                android:layout_width="52dp"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center"/>        </LinearLayout>
         <!-- Separator -->
         <View android:layout_width="match_parent" android:layout_height="1dp"
             android:background="#DDDDDD" android:layout_weight="0"
             android:layout_marginBottom="6dp"/>
 
-        <!-- Protivnik -->
         <!-- Protivnik -->
         <LinearLayout android:layout_width="match_parent" android:layout_height="0dp"
             android:layout_weight="1" android:orientation="horizontal" android:gravity="center_vertical">
@@ -268,8 +292,11 @@
             <TextView android:id="@+id/tvOppField4" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1"
                 android:layout_marginHorizontal="2dp" android:gravity="center" android:text="\?"
                 android:textSize="18sp" android:background="#F0F0F0"/>
-            <TextView android:id="@+id/tvOppMatches" android:layout_width="52dp" android:layout_height="wrap_content"
-                android:text="-- ✓" android:textSize="10sp" android:textColor="@color/text_secondary"
+            <LinearLayout
+                android:id="@+id/llOppFeedback"
+                android:layout_width="52dp"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
                 android:gravity="center"/>
         </LinearLayout>
         <!-- Konačno rešenje — skriveno, prikazuje se iz koda kad igra završi -->
@@ -323,6 +350,17 @@
             android:text="Napusti igru"
             android:layout_marginEnd="8dp"
             android:textColor="@color/primary_green"
+            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+            app:strokeColor="@color/primary_green"/>
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnDelete"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="⌫"
+            android:textSize="18sp"
+            android:layout_marginHorizontal="4dp"
             style="@style/Widget.MaterialComponents.Button.OutlinedButton"
             app:strokeColor="@color/primary_green"/>
 

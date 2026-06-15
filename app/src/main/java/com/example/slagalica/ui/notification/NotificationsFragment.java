@@ -16,6 +16,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.example.slagalica.R;
 import com.example.slagalica.data.model.AppNotification;
 import com.example.slagalica.data.repository.NotificationRepository;
+import com.example.slagalica.logic.AppNotificationManager;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.ListenerRegistration;
@@ -53,6 +54,15 @@ public class NotificationsFragment extends Fragment
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
+
+        Button btnTest = view.findViewById(R.id.btnTestNotif);
+        btnTest.setOnClickListener(v -> {
+            AppNotificationManager manager = new AppNotificationManager(requireContext());
+            manager.sendGameInviteNotification("TestIgrac");
+            manager.sendRewardNotification("Osvojio si 50 tokena!");
+            manager.sendRankingNotification("Tvoj plasman je #5 na rang listi.");
+            Toast.makeText(requireContext(), "Test notifikacije poslate!", Toast.LENGTH_SHORT).show();
+        });
 
         bindViews(view);
         setupRecyclerView();

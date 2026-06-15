@@ -80,7 +80,10 @@ public class KoZnaZnaActivity extends AppCompatActivity {
         myId       = getIntent().getStringExtra("myId");
         opponentId = getIntent().getStringExtra("opponentId");
         isPlayer1  = getIntent().getBooleanExtra("isPlayer1", true);
-
+        if (myId == null && !isGuest) {
+            com.google.firebase.auth.FirebaseUser fbUser = com.google.firebase.auth.FirebaseAuth.getInstance().getCurrentUser();
+            if (fbUser != null) myId = fbUser.getUid();
+        }
         bindViews();
 
         // btnFinish sakrivamo - igra sama napreduje

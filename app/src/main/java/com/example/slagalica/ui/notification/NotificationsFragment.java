@@ -1,5 +1,6 @@
 package com.example.slagalica.ui.notification;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -17,8 +18,10 @@ import com.example.slagalica.R;
 import com.example.slagalica.data.model.AppNotification;
 import com.example.slagalica.data.repository.NotificationRepository;
 import com.example.slagalica.logic.AppNotificationManager;
+import com.example.slagalica.ui.games.KoZnaZnaActivity;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.firestore.ListenerRegistration;
 
 import java.util.ArrayList;
@@ -155,12 +158,20 @@ public class NotificationsFragment extends Fragment
 
     @Override
     public void onAcceptInvite(AppNotification notification) {
-        // Mark as read so it disappears from unread
         repo.markAsRead(notification.getId(), v -> {}, e -> {});
-        Toast.makeText(requireContext(), "Prihvaćen poziv!", Toast.LENGTH_SHORT).show();
-        // TODO: navigate to matchmaking / start game with sender
-    }
 
+        FirebaseDatabase.getInstance().getReference("activeMatches")
+                .child(notification.getMatchId()).child("info").child("status")
+                .setValue("accepted");
+
+        Intent intent = new Intent(getActivity(), KoZnaZnaActivity.class);
+        intent.putExtra("isGuest", false);
+        intent.putExtra("matchId", notification.getMatchId());
+        intent.putExtra("myId", currentUid());
+        intent.putExtra("opponentId", notification.getFromUserId());
+        intent.putExtra("isPlayer1", false);
+        startActivity(intent);
+    }
     @Override
     public void onDeclineInvite(AppNotification notification) {
         repo.markAsRead(notification.getId(), v -> {}, e -> {});

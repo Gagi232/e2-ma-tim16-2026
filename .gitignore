@@ -2,3 +2,8 @@ java_pid4068.hprof
 build/reports/problems/problems-report.html
 build/reports/problems/problems-report.html
 build/reports/problems/problems-report.html
+.gradle/
+.idea/
+build/
+*.iml
+local.properties

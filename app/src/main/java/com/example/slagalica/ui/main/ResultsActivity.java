@@ -1,5 +1,5 @@
 package com.example.slagalica.ui.main;
-
+import com.google.firebase.auth.FirebaseAuth;
 import android.content.Intent;
 import android.os.Bundle;
 import android.widget.TextView;
@@ -21,8 +21,7 @@ public class ResultsActivity extends AppCompatActivity {
         boolean isGuest   = getIntent().getBooleanExtra("isGuest", false);
         int myTotal       = getIntent().getIntExtra("totalMyScore", 0);
         int oppTotal      = getIntent().getIntExtra("totalOpponentScore", 0);
-        String myId       = getIntent().getStringExtra("myId");
-
+        boolean isLoggedIn = FirebaseAuth.getInstance().getCurrentUser() != null;
         boolean iWon = myTotal > oppTotal;
 
         // Prikaži rezultate
@@ -44,7 +43,7 @@ public class ResultsActivity extends AppCompatActivity {
         }
 
         // Upiši statistiku i ažuriraj zvezde (samo za registrovane, ne gost)
-        if (!isGuest && myId != null) {
+        if (!isGuest && isLoggedIn) {
             saveResults(iWon, myTotal, starsChange);
         }
 

@@ -52,15 +52,29 @@ public class KorakPoKorakActivity extends AppCompatActivity {
         );
 
         btnPredaj.setOnClickListener(v -> {
-            Intent intent = new Intent(this, ResultsActivity.class);
-            intent.putExtra("isGuest", getIntent().getBooleanExtra("isGuest", false));
+            // btnPredaj i btnFinish — oba idu na MojBrojActivity
+            Intent intent = new Intent(this, MojBrojActivity.class);
+            intent.putExtra("isGuest",            getIntent().getBooleanExtra("isGuest", false));
+            intent.putExtra("matchId",            getIntent().getStringExtra("matchId"));
+            intent.putExtra("myId",               getIntent().getStringExtra("myId"));
+            intent.putExtra("opponentId",         getIntent().getStringExtra("opponentId"));
+            intent.putExtra("isPlayer1",          getIntent().getBooleanExtra("isPlayer1", true));
+            intent.putExtra("totalMyScore",       getIntent().getIntExtra("totalMyScore", 0));
+            intent.putExtra("totalOpponentScore", getIntent().getIntExtra("totalOpponentScore", 0));
             startActivity(intent);
             finish();
         });
 
         btnFinish.setOnClickListener(v -> {
-            Intent intent = new Intent(this, ResultsActivity.class);
-            intent.putExtra("isGuest", getIntent().getBooleanExtra("isGuest", false));
+            // btnPredaj i btnFinish — oba idu na MojBrojActivity
+            Intent intent = new Intent(this, MojBrojActivity.class);
+            intent.putExtra("isGuest",            getIntent().getBooleanExtra("isGuest", false));
+            intent.putExtra("matchId",            getIntent().getStringExtra("matchId"));
+            intent.putExtra("myId",               getIntent().getStringExtra("myId"));
+            intent.putExtra("opponentId",         getIntent().getStringExtra("opponentId"));
+            intent.putExtra("isPlayer1",          getIntent().getBooleanExtra("isPlayer1", true));
+            intent.putExtra("totalMyScore",       getIntent().getIntExtra("totalMyScore", 0));
+            intent.putExtra("totalOpponentScore", getIntent().getIntExtra("totalOpponentScore", 0));
             startActivity(intent);
             finish();
         });

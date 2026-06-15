@@ -470,9 +470,18 @@ public class SkockoActivity extends AppCompatActivity {
 
     private void goNext() {
         if (timer != null) timer.cancel();
-        Intent intent = new Intent(this, MojBrojActivity.class);
-        intent.putExtra("isGuest", getIntent().getBooleanExtra("isGuest", false));
-        intent.putExtra("scoreSkocko", myScore);
+
+        int prevMy  = getIntent().getIntExtra("totalMyScore", 0);
+        int prevOpp = getIntent().getIntExtra("totalOpponentScore", 0);
+
+        Intent intent = new Intent(this, KorakPoKorakActivity.class);
+        intent.putExtra("isGuest",            getIntent().getBooleanExtra("isGuest", false));
+        intent.putExtra("matchId",            getIntent().getStringExtra("matchId"));
+        intent.putExtra("myId",               getIntent().getStringExtra("myId"));
+        intent.putExtra("opponentId",         getIntent().getStringExtra("opponentId"));
+        intent.putExtra("isPlayer1",          getIntent().getBooleanExtra("isPlayer1", true));
+        intent.putExtra("totalMyScore",       prevMy + myScore);
+        intent.putExtra("totalOpponentScore", prevOpp + opponentScore);
         startActivity(intent);
         finish();
     }

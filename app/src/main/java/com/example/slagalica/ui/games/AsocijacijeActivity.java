@@ -430,13 +430,22 @@ public class AsocijacijeActivity extends AppCompatActivity {
 
     private void goNext() {
         if (timer != null) timer.cancel();
+
+        // Uzmi skore iz prethdnog
+        int prevMy  = getIntent().getIntExtra("totalMyScore", 0);
+        int prevOpp = getIntent().getIntExtra("totalOpponentScore", 0);
+
         Intent intent = new Intent(this, SkockoActivity.class);
-        intent.putExtra("isGuest", getIntent().getBooleanExtra("isGuest", false));
-        intent.putExtra("scoreAsocijacije", myScore);
+        intent.putExtra("isGuest",            getIntent().getBooleanExtra("isGuest", false));
+        intent.putExtra("matchId",            getIntent().getStringExtra("matchId"));
+        intent.putExtra("myId",               getIntent().getStringExtra("myId"));
+        intent.putExtra("opponentId",         getIntent().getStringExtra("opponentId"));
+        intent.putExtra("isPlayer1",          getIntent().getBooleanExtra("isPlayer1", true));
+        intent.putExtra("totalMyScore",       prevMy + myScore);
+        intent.putExtra("totalOpponentScore", prevOpp + opponentScore);
         startActivity(intent);
         finish();
     }
-
     private void confirmLeave() {
         new AlertDialog.Builder(this)
                 .setTitle("Napusti igru?")

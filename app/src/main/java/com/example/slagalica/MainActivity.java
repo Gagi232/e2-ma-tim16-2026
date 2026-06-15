@@ -14,6 +14,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.fragment.app.Fragment;
 
 import com.example.slagalica.data.remote.DatabaseSeeder;
+import com.example.slagalica.data.repository.UserRepository;
 import com.example.slagalica.ui.friends.FriendsFragment;
 import com.example.slagalica.ui.games.KoZnaZnaActivity;
 import com.example.slagalica.ui.leaderboard.LeaderboardFragment;
@@ -38,6 +39,7 @@ public class MainActivity extends AppCompatActivity {
         btnPlay.setOnClickListener(v ->
                 startActivity(new Intent(this, KoZnaZnaActivity.class))
         );
+        new UserRepository().setOnline(true, null);
         BottomNavigationView bottomNav = findViewById(R.id.bottomNav);
 
         loadFragment(new HomeFragment());
@@ -70,7 +72,17 @@ public class MainActivity extends AppCompatActivity {
             return true;
         });
     }
+    @Override
+    protected void onResume() {
+        super.onResume();
+        new UserRepository().setOnline(true, null);
+    }
 
+    @Override
+    protected void onPause() {
+        super.onPause();
+        new UserRepository().setOnline(false, null);
+    }
     private void loadFragment(Fragment fragment) {
         getSupportFragmentManager()
                 .beginTransaction()

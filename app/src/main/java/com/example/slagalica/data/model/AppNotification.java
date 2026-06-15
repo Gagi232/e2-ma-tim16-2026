@@ -7,6 +7,9 @@ public class AppNotification {
     private String message;
     private boolean read;
     private long createdAt;
+    private String fromUserId;
+    private String fromUsername;
+    private String matchId;
 
     public AppNotification() {}
 
@@ -27,4 +30,13 @@ public class AppNotification {
 
     public long getCreatedAt() { return createdAt; }
     public void setCreatedAt(long createdAt) { this.createdAt = createdAt; }
+
+    public String getFromUserId() { return fromUserId; }
+    public void setFromUserId(String fromUserId) { this.fromUserId = fromUserId; }
+
+    public String getFromUsername() { return fromUsername; }
+    public void setFromUsername(String fromUsername) { this.fromUsername = fromUsername; }
+
+    public String getMatchId() { return matchId; }
+    public void setMatchId(String matchId) { this.matchId = matchId; }
 }

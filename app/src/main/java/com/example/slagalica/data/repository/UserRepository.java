@@ -4,6 +4,9 @@ import com.example.slagalica.data.model.User;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.FirebaseFirestore;
 
+import java.util.HashMap;
+import java.util.Map;
+
 public class UserRepository {
     private static final String USERS = "users";
     private final FirebaseFirestore db = FirebaseFirestore.getInstance();
@@ -45,7 +48,15 @@ public class UserRepository {
                 .addOnSuccessListener(v -> callback.onSuccess(null))
                 .addOnFailureListener(callback::onError);
     }
-
+    public void setOnline(boolean isOnline, Callback<Void> callback) {
+        if (auth.getCurrentUser() == null) return;
+        String uid = auth.getCurrentUser().getUid();
+        Map<String, Object> updates = new HashMap<>();
+        updates.put("online", isOnline);
+        db.collection(USERS).document(uid).update(updates)
+                .addOnSuccessListener(v -> { if (callback != null) callback.onSuccess(null); })
+                .addOnFailureListener(e -> { if (callback != null) callback.onError(e); });
+    }
     public void updateAvatar(String avatarValue, Callback<Void> callback) {
         updateField("avatarUrl", avatarValue, callback);
     }

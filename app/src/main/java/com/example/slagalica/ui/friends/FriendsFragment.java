@@ -15,16 +15,22 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import androidx.fragment.app.Fragment;
 import com.example.slagalica.R;
+import com.example.slagalica.data.model.AppNotification;
 import com.example.slagalica.data.model.User;
 import com.example.slagalica.data.repository.FriendsRepository;
+import com.example.slagalica.data.repository.NotificationRepository;
 import com.example.slagalica.data.repository.UserRepository;
+import com.example.slagalica.logic.AppNotificationManager;
 import com.example.slagalica.ui.games.KoZnaZnaActivity;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.firestore.FirebaseFirestore;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class FriendsFragment extends Fragment {
 
@@ -78,7 +84,32 @@ public class FriendsFragment extends Fragment {
                     showSearchResults(results);
                 });
     }
+    private void waitForAcceptance(String matchId, String opponentId) {
+        FirebaseDatabase.getInstance().getReference("activeMatches")
+                .child(matchId).child("info").child("status")
+                .addValueEventListener(new com.google.firebase.database.ValueEventListener() {
+                    @Override
+                    public void onDataChange(com.google.firebase.database.DataSnapshot snap) {
+                        String status = snap.getValue(String.class);
+                        if ("accepted".equals(status)) {
+                            Intent intent = new Intent(getActivity(), KoZnaZnaActivity.class);
+                            intent.putExtra("isGuest", false);
+                            intent.putExtra("matchId", matchId);
+                            intent.putExtra("myId", myUid);
+                            intent.putExtra("opponentId", opponentId);
+                            intent.putExtra("isPlayer1", true);
+                            startActivity(intent);
+                        }
+                    }
+                    @Override public void onCancelled(com.google.firebase.database.DatabaseError e) {}
+                });
+    }
 
+    private String getMyUsername() {
+        // jednostavno — koristi email prefix ili "Igrač"
+        String email = FirebaseAuth.getInstance().getCurrentUser().getEmail();
+        return email != null ? email.split("@")[0] : "Igrač";
+    }
     private void showSearchResults(List<User> users) {
         if (users.isEmpty()) {
             Toast.makeText(getActivity(), "Nema rezultata", Toast.LENGTH_SHORT).show();
@@ -155,10 +186,31 @@ public class FriendsFragment extends Fragment {
 
         btnPlay.setEnabled(friend.isOnline());
         btnPlay.setOnClickListener(v -> {
-            Intent intent = new Intent(getActivity(), KoZnaZnaActivity.class);
-            intent.putExtra("isFriendly", true);
-            intent.putExtra("opponentId", friend.getId());
-            startActivity(intent);
+            String matchId = FirebaseDatabase.getInstance().getReference("activeMatches").push().getKey();
+
+            // Kreiraj match dokument
+            Map<String, Object> matchData = new HashMap<>();
+            matchData.put("player1", myUid);
+            matchData.put("player2", friend.getId());
+            matchData.put("status", "pending");
+            FirebaseDatabase.getInstance().getReference("activeMatches")
+                    .child(matchId).child("info").setValue(matchData);
+
+            // Pošalji notifikaciju pozivu
+            AppNotification notif = new AppNotification();
+            notif.setUserId(friend.getId());
+            notif.setType(AppNotificationManager.TYPE_GAME_INVITE);
+            notif.setMessage(getMyUsername() + " te poziva na partiju!");
+            notif.setFromUserId(myUid);
+            notif.setMatchId(matchId);
+            notif.setRead(false);
+            notif.setCreatedAt(System.currentTimeMillis());
+
+            new NotificationRepository().save(notif, id -> {
+                Toast.makeText(getActivity(), "Poziv poslat! Čekamo prihvatanje...", Toast.LENGTH_SHORT).show();
+                // Pozivaoc čeka u KoZnaZna kao Player1
+                waitForAcceptance(matchId, friend.getId());
+            }, e -> Toast.makeText(getActivity(), "Greška pri slanju poziva", Toast.LENGTH_SHORT).show());
         });
 
         llFriendsList.addView(card);

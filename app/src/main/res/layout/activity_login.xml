@@ -116,6 +116,17 @@
                     android:textSize="14sp"
                     android:layout_marginTop="8dp"
                     android:layout_gravity="end"/>
+
+                <!-- Ponovo pošalji verifikacioni email -->
+                <TextView
+                    android:id="@+id/tvResendVerification"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Nisam dobio/la verifikacioni email"
+                    android:textColor="@color/primary_green"
+                    android:textSize="14sp"
+                    android:layout_marginTop="4dp"
+                    android:layout_gravity="end"/>
                 <ProgressBar
                     android:id="@+id/progressBar"
                     android:layout_width="wrap_content"

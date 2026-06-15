@@ -1,6 +1,10 @@
 package com.example.slagalica.ui.games;
 
 import android.content.Intent;
+import android.hardware.Sensor;
+import android.hardware.SensorEvent;
+import android.hardware.SensorEventListener;
+import android.hardware.SensorManager;
 import android.os.Bundle;
 import android.os.CountDownTimer;
 import android.view.View;
@@ -51,8 +55,10 @@ public class MojBrojActivity extends AppCompatActivity {
     private int oppResult1 = Integer.MIN_VALUE;
     private int oppResult2 = Integer.MIN_VALUE;
 
-    private int myTotalScore  = 0;
+    private int myTotalScore  = 0;  // bodovi samo za ovu igru (prikaz)
     private int oppTotalScore = 0;
+    private int prevMyScore   = 0;  // kumulativ iz prethodnih igara
+    private int prevOppScore  = 0;
 
     // Match podaci
     private String matchId, myId, opponentId;
@@ -67,6 +73,34 @@ public class MojBrojActivity extends AppCompatActivity {
 
     private final Random random = new Random();
 
+    // Shake senzor
+    private SensorManager sensorManager;
+    private Sensor accelerometer;
+    private long lastShakeTime = 0;
+    private static final float SHAKE_THRESHOLD = 2.7f; // G-sila za detekciju
+    private static final int SHAKE_COOLDOWN_MS = 600;  // min. razmak između detekcija
+
+    private final SensorEventListener shakeListener = new SensorEventListener() {
+        @Override
+        public void onSensorChanged(SensorEvent event) {
+            float x = event.values[0];
+            float y = event.values[1];
+            float z = event.values[2];
+            float gForce = (float) Math.sqrt(x * x + y * y + z * z) / SensorManager.GRAVITY_EARTH;
+            if (gForce > SHAKE_THRESHOLD) {
+                long now = System.currentTimeMillis();
+                if (now - lastShakeTime < SHAKE_COOLDOWN_MS) return;
+                lastShakeTime = now;
+                // Shake = isto što i klik na STOP (samo u fazi 0 ili 1)
+                if (faza == 0 || faza == 1) {
+                    runOnUiThread(() -> handleStop());
+                }
+            }
+        }
+        @Override
+        public void onAccuracyChanged(Sensor sensor, int accuracy) {}
+    };
+
     // -------------------------------------------------------------------------
 
     @Override
@@ -79,8 +113,8 @@ public class MojBrojActivity extends AppCompatActivity {
         myId          = getIntent().getStringExtra("myId");
         opponentId    = getIntent().getStringExtra("opponentId");
         isPlayer1     = getIntent().getBooleanExtra("isPlayer1", true);
-        myTotalScore  = getIntent().getIntExtra("totalMyScore", 0);
-        oppTotalScore = getIntent().getIntExtra("totalOpponentScore", 0);
+        prevMyScore  = getIntent().getIntExtra("totalMyScore", 0);
+        prevOppScore = getIntent().getIntExtra("totalOpponentScore", 0);
 
         if (!isGuest && matchId != null) {
             matchRef = FirebaseDatabase.getInstance()
@@ -89,9 +123,31 @@ public class MojBrojActivity extends AppCompatActivity {
                     .child("mojBroj");
         }
 
+        sensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
+        if (sensorManager != null) {
+            accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
+        }
+
         bindViews();
         setupButtons();
         startRound(1);
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if (sensorManager != null && accelerometer != null) {
+            sensorManager.registerListener(
+                    shakeListener, accelerometer, SensorManager.SENSOR_DELAY_UI);
+        }
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        if (sensorManager != null) {
+            sensorManager.unregisterListener(shakeListener);
+        }
     }
 
     // ── Bind ------------------------------------------------------------------
@@ -164,7 +220,8 @@ public class MojBrojActivity extends AppCompatActivity {
     private void startRound(int round) {
         currentRound = round;
         // Runda 1 -> player1 ide prvi; Runda 2 -> player2 ide prvi
-        isMyTurn = (round == 1) == isPlayer1;
+        // U guest/solo modu oba igraca je isti korisnik — uvek dozvoli unos
+        isMyTurn = isGuest || matchId == null || (round == 1) == isPlayer1;
 
         faza = 0;
         izraz.setLength(0);
@@ -369,10 +426,8 @@ public class MojBrojActivity extends AppCompatActivity {
 
         if (!isGuest) {
             boolean exact = (myResult1 == targetNumber || myResult2 == targetNumber);
-            // bodovi samo od Moj Broj = razlika od pre ove igre
-            int prevTotal = getIntent().getIntExtra("totalMyScore", 0);
-            int mojBrojScore = myTotalScore - prevTotal;
-            new StatsRepository().saveMojBrojResult(exact, mojBrojScore,
+            // myTotalScore sada počinje od 0 i sadrži samo Moj Broj bodove
+            new StatsRepository().saveMojBrojResult(exact, myTotalScore,
                     new StatsRepository.Callback<Void>() {
                         @Override public void onSuccess(Void r) {}
                         @Override public void onError(Exception e) {}
@@ -395,8 +450,8 @@ public class MojBrojActivity extends AppCompatActivity {
         intent.putExtra("myId",               myId);
         intent.putExtra("opponentId",         opponentId);
         intent.putExtra("isPlayer1",          isPlayer1);
-        intent.putExtra("totalMyScore",       myTotalScore);
-        intent.putExtra("totalOpponentScore", oppTotalScore);
+        intent.putExtra("totalMyScore",       prevMyScore  + myTotalScore);
+        intent.putExtra("totalOpponentScore", prevOppScore + oppTotalScore);
         startActivity(intent);
         finish();
     }

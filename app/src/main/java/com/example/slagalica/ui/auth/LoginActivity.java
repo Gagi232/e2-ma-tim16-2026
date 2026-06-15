@@ -13,12 +13,15 @@ import com.example.slagalica.R;
 import com.example.slagalica.ui.main.GuestActivity;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.textfield.TextInputEditText;
+import com.google.android.material.textfield.TextInputLayout;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.firestore.FirebaseFirestore;
 
 public class LoginActivity extends AppCompatActivity {
 
     private TextInputEditText etEmail, etPassword;
+    private TextInputLayout tilEmail;
     private ProgressBar progressBar;
     private FirebaseAuth auth;
 
@@ -29,21 +32,24 @@ public class LoginActivity extends AppCompatActivity {
 
         auth = FirebaseAuth.getInstance();
 
-        // Ako je već ulogovan → idi na MainActivity
         FirebaseUser current = auth.getCurrentUser();
         if (current != null && current.isEmailVerified()) {
             goToMain();
             return;
         }
 
+        tilEmail      = findViewById(R.id.tilEmail);
         etEmail       = findViewById(R.id.etEmail);
         etPassword    = findViewById(R.id.etPassword);
         progressBar   = findViewById(R.id.progressBar);
 
-        MaterialButton btnLogin       = findViewById(R.id.btnLogin);
-        MaterialButton btnGuest       = findViewById(R.id.btnGuest);
-        TextView       tvRegister     = findViewById(R.id.tvRegister);
-        TextView       tvForgotPassword = findViewById(R.id.tvForgotPassword);
+        tilEmail.setHint("Email ili korisničko ime");
+
+        MaterialButton btnLogin            = findViewById(R.id.btnLogin);
+        MaterialButton btnGuest            = findViewById(R.id.btnGuest);
+        TextView       tvRegister          = findViewById(R.id.tvRegister);
+        TextView       tvForgotPassword    = findViewById(R.id.tvForgotPassword);
+        TextView       tvResendVerification= findViewById(R.id.tvResendVerification);
 
         btnLogin.setOnClickListener(v -> login());
 
@@ -59,14 +65,16 @@ public class LoginActivity extends AppCompatActivity {
         tvForgotPassword.setOnClickListener(v ->
                 startActivity(new Intent(this, ForgotPasswordActivity.class))
         );
+
+        tvResendVerification.setOnClickListener(v -> resendVerificationEmail());
     }
 
     private void login() {
-        String email    = etEmail.getText() != null ? etEmail.getText().toString().trim() : "";
+        String input    = etEmail.getText() != null ? etEmail.getText().toString().trim() : "";
         String password = etPassword.getText() != null ? etPassword.getText().toString().trim() : "";
 
-        if (TextUtils.isEmpty(email)) {
-            etEmail.setError("Unesite email");
+        if (TextUtils.isEmpty(input)) {
+            etEmail.setError("Unesite email ili korisničko ime");
             return;
         }
         if (TextUtils.isEmpty(password)) {
@@ -76,6 +84,38 @@ public class LoginActivity extends AppCompatActivity {
 
         showLoading(true);
 
+        if (input.contains("@")) {
+            // Direktan email login
+            performLogin(input, password);
+        } else {
+            // Pretraga korisnika po korisničkom imenu
+            FirebaseFirestore.getInstance()
+                    .collection("users")
+                    .whereEqualTo("username", input)
+                    .limit(1)
+                    .get()
+                    .addOnSuccessListener(query -> {
+                        if (!query.isEmpty()) {
+                            String email = query.getDocuments().get(0).getString("email");
+                            if (email != null) {
+                                performLogin(email, password);
+                            } else {
+                                showLoading(false);
+                                etEmail.setError("Korisničko ime nije pronađeno");
+                            }
+                        } else {
+                            showLoading(false);
+                            etEmail.setError("Korisničko ime nije pronađeno");
+                        }
+                    })
+                    .addOnFailureListener(e -> {
+                        showLoading(false);
+                        Toast.makeText(this, "Greška: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                    });
+        }
+    }
+
+    private void performLogin(String email, String password) {
         auth.signInWithEmailAndPassword(email, password)
                 .addOnSuccessListener(result -> {
                     FirebaseUser user = result.getUser();
@@ -93,8 +133,75 @@ public class LoginActivity extends AppCompatActivity {
                 .addOnFailureListener(e -> {
                     showLoading(false);
                     Toast.makeText(this,
-                            "Greška: " + e.getMessage(),
+                            "Pogrešna lozinka ili nalog ne postoji.",
                             Toast.LENGTH_SHORT).show();
+                });
+    }
+
+    private void resendVerificationEmail() {
+        String input    = etEmail.getText() != null ? etEmail.getText().toString().trim() : "";
+        String password = etPassword.getText() != null ? etPassword.getText().toString().trim() : "";
+
+        if (input.isEmpty() || password.isEmpty()) {
+            Toast.makeText(this,
+                    "Unesite email i lozinku pa kliknite ponovo.",
+                    Toast.LENGTH_LONG).show();
+            return;
+        }
+
+        showLoading(true);
+
+        // Morate biti privremeno ulogovani da biste poslali verifikacioni email
+        String emailToUse = input.contains("@") ? input : null;
+
+        if (emailToUse == null) {
+            // Pretraga emaila po korisničkom imenu
+            com.google.firebase.firestore.FirebaseFirestore.getInstance()
+                    .collection("users")
+                    .whereEqualTo("username", input)
+                    .limit(1)
+                    .get()
+                    .addOnSuccessListener(query -> {
+                        if (!query.isEmpty()) {
+                            String email = query.getDocuments().get(0).getString("email");
+                            if (email != null) sendVerificationAfterLogin(email, password);
+                            else { showLoading(false); Toast.makeText(this, "Korisnik nije pronađen.", Toast.LENGTH_SHORT).show(); }
+                        } else {
+                            showLoading(false);
+                            Toast.makeText(this, "Korisnik nije pronađen.", Toast.LENGTH_SHORT).show();
+                        }
+                    })
+                    .addOnFailureListener(e -> { showLoading(false); });
+        } else {
+            sendVerificationAfterLogin(emailToUse, password);
+        }
+    }
+
+    private void sendVerificationAfterLogin(String email, String password) {
+        auth.signInWithEmailAndPassword(email, password)
+                .addOnSuccessListener(result -> {
+                    FirebaseUser user = result.getUser();
+                    if (user != null && !user.isEmailVerified()) {
+                        user.sendEmailVerification()
+                                .addOnSuccessListener(v -> {
+                                    showLoading(false);
+                                    Toast.makeText(this,
+                                            "Verifikacioni email je ponovo poslat. Proverite spam folder!",
+                                            Toast.LENGTH_LONG).show();
+                                })
+                                .addOnFailureListener(e -> {
+                                    showLoading(false);
+                                    Toast.makeText(this, "Greška: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                                });
+                    } else if (user != null && user.isEmailVerified()) {
+                        showLoading(false);
+                        Toast.makeText(this, "Email je već verifikovan! Možete se ulogovati.", Toast.LENGTH_LONG).show();
+                    }
+                    if (user != null) auth.signOut();
+                })
+                .addOnFailureListener(e -> {
+                    showLoading(false);
+                    Toast.makeText(this, "Pogrešna lozinka.", Toast.LENGTH_SHORT).show();
                 });
     }
 

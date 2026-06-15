@@ -15,6 +15,7 @@ import com.example.slagalica.MainActivity;
 import com.example.slagalica.R;
 import com.example.slagalica.data.model.KoZnaZnaQuestion;
 import com.example.slagalica.data.repository.GameRepository;
+import com.example.slagalica.data.repository.StatsRepository;
 import com.example.slagalica.logic.KoZnaZnaLogic;
 import com.example.slagalica.ui.main.GuestActivity;
 import com.google.android.material.button.MaterialButton;
@@ -63,6 +64,9 @@ public class KoZnaZnaActivity extends AppCompatActivity {
     private boolean isPlayer1;
     private boolean isGuest;
 
+
+    private int correctCount = 0;
+    private int wrongCount   = 0;
     // Firebase Realtime DB
     private DatabaseReference matchRef;
 
@@ -229,7 +233,8 @@ public class KoZnaZnaActivity extends AppCompatActivity {
 
         long timestamp = System.currentTimeMillis();
         boolean correct = (selectedIndex == questions.get(currentIndex).getCorrectIndex());
-
+        if (correct) correctCount++;
+        else if (selectedIndex >= 0) wrongCount++; // -1 je timeout, ne broji se
         showFeedback(selectedIndex, questions.get(currentIndex).getCorrectIndex());
 
         if (matchRef != null) {
@@ -320,6 +325,17 @@ public class KoZnaZnaActivity extends AppCompatActivity {
             matchRef.child("done").child(myId).setValue(true);
         }
 
+        // ── NOVO: sačuvaj statistiku Ko zna zna ──
+        int correct = 0, wrong = 0;
+        // Rekonstruiši correct/wrong iz bodova (svaki tačan = +10, netačan = -5)
+        // Alternativno: dodaj brojače u klasu
+        StatsRepository statsRepo = new StatsRepository();
+        statsRepo.saveKoZnaZnaResult(correctCount, wrongCount, myScore,
+                new StatsRepository.Callback<Void>() {
+                    @Override public void onSuccess(Void r) {}
+                    @Override public void onError(Exception e) {}
+                });
+
         Intent intent = new Intent(this, SpojniceActivity.class);
         intent.putExtra("isGuest",          isGuest);
         intent.putExtra("matchId",          matchId);
@@ -331,7 +347,6 @@ public class KoZnaZnaActivity extends AppCompatActivity {
         startActivity(intent);
         finish();
     }
-
     private void forfeit() {
         if (timer != null) timer.cancel();
         if (matchRef != null) {
@@ -392,4 +407,6 @@ public class KoZnaZnaActivity extends AppCompatActivity {
         super.onDestroy();
         if (timer != null) timer.cancel();
     }
+
+
 }

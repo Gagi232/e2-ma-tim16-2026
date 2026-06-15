@@ -13,6 +13,7 @@ import com.example.slagalica.R;
 import com.example.slagalica.data.model.SpojnicePar;
 import com.example.slagalica.data.model.SpojniceSet;
 import com.example.slagalica.data.repository.GameRepository;
+import com.example.slagalica.data.repository.StatsRepository;
 import com.example.slagalica.ui.main.GuestActivity;
 import com.google.android.material.button.MaterialButton;
 import com.google.firebase.database.*;
@@ -480,7 +481,21 @@ public class SpojniceActivity extends AppCompatActivity {
             matchRef.child("finalScore").child(myId).setValue(totalMy);
             matchRef.child("done").child(myId).setValue(true);
         }
-        // Prelaz na Asocijacije (Student 3 implementira)
+
+        // ── NOVO: sačuvaj statistiku Spojnice ──
+        // spojniceMyScore = samo bodovi od Spojnica (totalMy - kzzMyScore)
+        int kzzScore     = getIntent().getIntExtra("kzzMyScore", 0);
+        int spojniceScore = totalMy - kzzScore;
+        // connected = spojniceScore / 2 (2 boda po paru)
+        int connected = spojniceScore / 2;
+
+        StatsRepository statsRepo = new StatsRepository();
+        statsRepo.saveSpojniceResult(connected, 10, spojniceScore,
+                new StatsRepository.Callback<Void>() {
+                    @Override public void onSuccess(Void r) {}
+                    @Override public void onError(Exception e) {}
+                });
+
         Intent intent = new Intent(this, AsocijacijeActivity.class);
         intent.putExtra("isGuest",            isGuest);
         intent.putExtra("matchId",            matchId);
@@ -492,7 +507,6 @@ public class SpojniceActivity extends AppCompatActivity {
         startActivity(intent);
         finish();
     }
-
     private void forfeit() {
         if (timer != null) timer.cancel();
         if (matchRef != null)

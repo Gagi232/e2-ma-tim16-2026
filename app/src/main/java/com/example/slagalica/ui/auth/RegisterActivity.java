@@ -81,8 +81,12 @@ public class RegisterActivity extends AppCompatActivity {
                 .addOnSuccessListener(result -> {
                     String uid = result.getUser().getUid();
 
-                    // Pošalji verifikacioni email
-                    result.getUser().sendEmailVerification();
+                    // Pošalji verifikacioni email i sačekaj rezultat
+                    result.getUser().sendEmailVerification()
+                            .addOnSuccessListener(v ->
+                                android.util.Log.d("Register", "Verifikacioni email poslat na: " + result.getUser().getEmail()))
+                            .addOnFailureListener(e ->
+                                android.util.Log.e("Register", "Greška pri slanju verifikacionog emaila: " + e.getMessage()));
 
                     // Napravi User objekat i sačuvaj u Firestore
                     User user = new User();

@@ -30,9 +30,12 @@ public class SpojniceActivity extends AppCompatActivity {
     private String  matchId, myId, opponentId;
     private boolean isPlayer1, isGuest;
 
-    // ── Kumulativni bodovi (iz svih prethodnih igara) ─────────────────────────
+    // Bodovi samo za ovu igru (prikaz u UI)
     private int totalMy  = 0;
     private int totalOpp = 0;
+    // Kumulativ iz prethodnih igara (ne prikazuje se, samo se prosleđuje dalje)
+    private int prevMy   = 0;
+    private int prevOpp  = 0;
 
     // ── Stanje igre ───────────────────────────────────────────────────────────
     private SpojniceSet set;
@@ -79,8 +82,8 @@ public class SpojniceActivity extends AppCompatActivity {
         myId       = getIntent().getStringExtra("myId");
         opponentId = getIntent().getStringExtra("opponentId");
         isPlayer1  = getIntent().getBooleanExtra("isPlayer1", true);
-        totalMy    = getIntent().getIntExtra("kzzMyScore", 0);
-        totalOpp   = getIntent().getIntExtra("kzzOpponentScore", 0);
+        prevMy  = getIntent().getIntExtra("kzzMyScore", 0);
+        prevOpp = getIntent().getIntExtra("kzzOpponentScore", 0);
 
         initViews();
         updateScoreUI();
@@ -478,19 +481,14 @@ public class SpojniceActivity extends AppCompatActivity {
     private void finishGame() {
         if (timer != null) timer.cancel();
         if (matchRef != null) {
-            matchRef.child("finalScore").child(myId).setValue(totalMy);
+            matchRef.child("finalScore").child(myId).setValue(prevMy + totalMy);
             matchRef.child("done").child(myId).setValue(true);
         }
 
-        // ── NOVO: sačuvaj statistiku Spojnice ──
-        // spojniceMyScore = samo bodovi od Spojnica (totalMy - kzzMyScore)
-        int kzzScore     = getIntent().getIntExtra("kzzMyScore", 0);
-        int spojniceScore = totalMy - kzzScore;
-        // connected = spojniceScore / 2 (2 boda po paru)
-        int connected = spojniceScore / 2;
-
+        // totalMy je sada samo bodovi od Spojnica (počelo od 0)
+        int connected = totalMy / 2;
         StatsRepository statsRepo = new StatsRepository();
-        statsRepo.saveSpojniceResult(connected, 10, spojniceScore,
+        statsRepo.saveSpojniceResult(connected, 10, totalMy,
                 new StatsRepository.Callback<Void>() {
                     @Override public void onSuccess(Void r) {}
                     @Override public void onError(Exception e) {}
@@ -502,8 +500,8 @@ public class SpojniceActivity extends AppCompatActivity {
         intent.putExtra("myId",               myId);
         intent.putExtra("opponentId",         opponentId);
         intent.putExtra("isPlayer1",          isPlayer1);
-        intent.putExtra("totalMyScore",       totalMy);
-        intent.putExtra("totalOpponentScore", totalOpp);
+        intent.putExtra("totalMyScore",       prevMy + totalMy);
+        intent.putExtra("totalOpponentScore", prevOpp + totalOpp);
         startActivity(intent);
         finish();
     }

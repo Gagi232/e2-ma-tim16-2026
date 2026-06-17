@@ -3,24 +3,38 @@ package com.example.slagalica.ui.games;
 import android.content.Intent;
 import android.os.Bundle;
 import android.os.CountDownTimer;
-import android.view.Gravity;
+import android.os.Handler;
+import android.view.View;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.example.slagalica.R;
 import com.example.slagalica.data.model.SkockoCombo;
+import com.example.slagalica.data.model.User;
 import com.example.slagalica.data.repository.GameRepository;
+import com.example.slagalica.data.repository.StatsRepository;
+import com.example.slagalica.data.repository.UserRepository;
+import com.example.slagalica.logic.LeagueLogic;
 import com.example.slagalica.logic.SkockoLogic;
+import com.example.slagalica.ui.main.GuestActivity;
 import com.google.android.material.button.MaterialButton;
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.ValueEventListener;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
-import java.util.Random;
+import java.util.Map;
+import java.util.Objects;
 
 public class SkockoActivity extends AppCompatActivity {
 
@@ -28,35 +42,57 @@ public class SkockoActivity extends AppCompatActivity {
 
     // ── UI ───────────────────────────────────────────────────────────────────
     private TextView tvTimer, tvMyScore, tvOpponentScore, tvRound;
-    private TextView[][] tvAttemptFields;   // [6][4] — runda 1: moji; runda 2: protivnikovi
+    private TextView[][] tvAttemptFields;
     private LinearLayout[] llAttemptFeedback;
-    private TextView[] tvOppFields;         // 7. red — moj pokušaj u rundi 2
+    private TextView[] tvOppFields;
     private LinearLayout llOppFeedback;
     private TextView[] tvSymbolButtons;
     private MaterialButton btnFinish, btnLeave, btnDelete;
 
-    // ── State ─────────────────────────────────────────────────────────────────
+    // ── Match State ──────────────────────────────────────────────────────────
+    private String matchId, myId, opponentId;
+    private boolean isPlayer1, isGuest;
+    private DatabaseReference matchRef;
+
     private SkockoCombo combo;
-    private int currentRound  = 1;
-    private int myScore       = 0;
-    private int opponentScore = 0;
+    private int currentRound = 1;
+    private int myScoreTotal = 0;
+    private int oppScoreTotal = 0;
+
     private List<String> currentGuess;
-    private int attemptIndex;
-    private boolean roundWon;
-    private boolean isMyTurn;
-    // Runda 2: da li je protivnik vec odigrao (simulirano) i cekamo moj pokusaj
-    private boolean waitingForMyR2Guess = false;
+    private int attemptIndex = 0;
+    private boolean isMyTurn = false;
+    private boolean isOpponentChance = false;
 
     private CountDownTimer timer;
     private final GameRepository repo = new GameRepository();
+    private final StatsRepository statsRepo = new StatsRepository();
+    private final UserRepository userRepo = new UserRepository();
+    private ValueEventListener roundListener;
 
-    // ────────────────────────────────────────────────────────────────────────
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_skocko);
+
+        isGuest    = getIntent().getBooleanExtra("isGuest", false);
+        matchId    = getIntent().getStringExtra("matchId");
+        myId       = getIntent().getStringExtra("myId");
+        opponentId = getIntent().getStringExtra("opponentId");
+        isPlayer1  = getIntent().getBooleanExtra("isPlayer1", true);
+
+        myScoreTotal  = getIntent().getIntExtra("totalMyScore", 0);
+        oppScoreTotal = getIntent().getIntExtra("totalOpponentScore", 0);
+
         bindViews();
-        loadComboAndStart(1);
+        updateTopBar();
+
+        if (isGuest || matchId == null) {
+            loadSolo();
+        } else {
+            matchRef = FirebaseDatabase.getInstance().getReference("activeMatches").child(matchId).child("skocko");
+            startMultiplayerRound(1);
+        }
     }
 
     private void bindViews() {
@@ -95,12 +131,11 @@ public class SkockoActivity extends AppCompatActivity {
         };
         llOppFeedback = findViewById(R.id.llOppFeedback);
 
-        // Symbol buttons
-        android.widget.LinearLayout llRoundSymbols = findViewById(R.id.llRoundSymbols);
+        LinearLayout llRoundSymbols = findViewById(R.id.llRoundSymbols);
         tvSymbolButtons = new TextView[6];
         int symIdx = 0;
         for (int i = 0; i < llRoundSymbols.getChildCount() && symIdx < 6; i++) {
-            android.view.View child = llRoundSymbols.getChildAt(i);
+            View child = llRoundSymbols.getChildAt(i);
             if (child instanceof TextView && child.getId() != R.id.tvRound) {
                 tvSymbolButtons[symIdx] = (TextView) child;
                 final String sym = SYMBOLS.get(symIdx);
@@ -110,45 +145,240 @@ public class SkockoActivity extends AppCompatActivity {
         }
 
         btnDelete.setOnClickListener(v -> deleteLastSymbol());
-        btnLeave.setOnClickListener(v -> confirmLeave());
-        updateFinishButton(false);
+        btnFinish.setOnClickListener(v -> submitGuess());
+        btnLeave.setOnClickListener(v -> forfeit());
     }
 
-    // ── Load & start ──────────────────────────────────────────────────────────
-    private void loadComboAndStart(int round) {
-        repo.getRandomSkockoCombo(
-                c -> { combo = c; startRound(round); },
-                e -> Toast.makeText(this, "Greška pri učitavanju kombinacije.", Toast.LENGTH_SHORT).show()
-        );
+    private void updateTopBar() {
+        userRepo.getCurrentUser(new UserRepository.Callback<User>() {
+            @Override
+            public void onSuccess(User user) {
+                ((TextView) findViewById(R.id.tvTokens)).setText(String.valueOf(user.getTokens()));
+                ((TextView) findViewById(R.id.tvStars)).setText(String.valueOf(user.getStars()));
+                int league = LeagueLogic.calculateLeague(user.getStars());
+                ((TextView) findViewById(R.id.tvLeague)).setText(LeagueLogic.getLeagueIcon(league));
+            }
+            @Override public void onError(Exception e) {}
+        });
     }
 
-    private void startRound(int round) {
-        currentRound        = round;
-        isMyTurn            = true;
-        waitingForMyR2Guess = false;
-        currentGuess        = new ArrayList<>(Arrays.asList("", "", "", ""));
-        attemptIndex        = 0;
-        roundWon            = false;
-
-        tvRound.setText("Runda " + round + "/2");
-        updateScoreBar();
-        resetGrid();
-
-        if (round == 1) {
-            // Runda 1: ja igram normalno, 6 pokusaja, 60 sekundi
-            setSymbolsEnabled(true);
-            btnDelete.setEnabled(true);
-            updateFinishButton(false);
+    private void loadSolo() {
+        repo.getRandomSkockoCombo(c -> {
+            combo = c;
+            isMyTurn = true;
+            setupRoundUI(1);
             startTimer(60);
+        }, e -> showError());
+    }
+
+    private void startMultiplayerRound(int round) {
+        currentRound = round;
+        String roundKey = "round" + round;
+        boolean iSetup = (round == 1) ? isPlayer1 : !isPlayer1;
+
+        if (iSetup) {
+            repo.getRandomSkockoCombo(c -> {
+                combo = c;
+                Map<String, Object> data = new HashMap<>();
+                data.put("setId", c.getId());
+                data.put("phase", "playing");
+                // round 1: player1 plays, round 2: player2 plays
+                data.put("player", (round==1)?(isPlayer1?myId:opponentId):(isPlayer1?opponentId:myId));
+                matchRef.child(roundKey).setValue(data);
+                listenToRound(roundKey);
+            }, e -> showError());
         } else {
-            // Runda 2: prvo simuliraj protivnika na prvih 6 redova,
-            // pa onda daj meni jedan pokusaj u 7. redu
-            setSymbolsEnabled(false);
-            btnDelete.setEnabled(false);
-            updateFinishButton(false);
-            tvTimer.setText("--");
-            simulateOpponentThenMyTurn();
+            listenToRound(roundKey);
         }
+    }
+
+    private void listenToRound(String roundKey) {
+        if (roundListener != null) matchRef.child(roundKey).removeEventListener(roundListener);
+        roundListener = new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot snapshot) {
+                if (!snapshot.exists()) return;
+                String setId = snapshot.child("setId").getValue(String.class);
+                if (setId == null) return;
+
+                if (combo == null || !combo.getId().equals(setId)) {
+                    repo.getRandomSkockoCombo(c -> { 
+                        combo = c;
+                        setupRoundUI(currentRound);
+                        updateStateFromSnapshot(snapshot);
+                    }, e -> showError());
+                } else {
+                    updateStateFromSnapshot(snapshot);
+                }
+            }
+            @Override
+            public void onCancelled(@NonNull DatabaseError error) {}
+        };
+        matchRef.child(roundKey).addValueEventListener(roundListener);
+    }
+
+    private void updateStateFromSnapshot(DataSnapshot snap) {
+        String phase = snap.child("phase").getValue(String.class);
+        String activePlayer = snap.child("player").getValue(String.class);
+
+        isMyTurn = Objects.equals(myId, activePlayer);
+        isOpponentChance = "opponent_chance".equals(phase);
+
+        // Sync attempts
+        DataSnapshot attsSnap = snap.child("attempts");
+        int lastAtt = -1;
+        for (DataSnapshot att : attsSnap.getChildren()) {
+            int idx = Integer.parseInt(att.getKey());
+            lastAtt = Math.max(lastAtt, idx);
+            List<String> guess = (List<String>) att.getValue();
+            if (guess != null) {
+                for (int f = 0; f < 4; f++) tvAttemptFields[idx][f].setText(guess.get(f));
+            }
+        }
+        attemptIndex = lastAtt + 1;
+
+        // Sync results
+        DataSnapshot resSnap = snap.child("results");
+        for (DataSnapshot res : resSnap.getChildren()) {
+            int idx = Integer.parseInt(res.getKey());
+            Integer m = res.child("matches").getValue(Integer.class);
+            Integer w = res.child("wrongPos").getValue(Integer.class);
+            if (m != null && w != null) setFeedbackCircles(llAttemptFeedback[idx], m, w);
+        }
+
+        // Sync opponent chance
+        if (isOpponentChance) {
+            DataSnapshot ocSnap = snap.child("oppChanceGuess");
+            if (ocSnap.exists()) {
+                List<String> guess = (List<String>) ocSnap.getValue();
+                if (guess != null) {
+                    for (int f = 0; f < 4; f++) tvOppFields[f].setText(guess.get(f));
+                }
+                Boolean correct = snap.child("oppChanceCorrect").getValue(Boolean.class);
+                if (correct != null) setFeedbackCircles(llOppFeedback, correct?4:0, 0);
+            }
+        }
+
+        updateUIForTurn();
+
+        if ("done".equals(phase)) {
+            endRound();
+        }
+    }
+
+    private void setupRoundUI(int round) {
+        tvRound.setText("Runda " + round + "/2");
+        resetGrid();
+        currentGuess = new ArrayList<>(Arrays.asList("", "", "", ""));
+        attemptIndex = 0;
+    }
+
+    private void updateUIForTurn() {
+        boolean enabled = isMyTurn;
+        btnFinish.setEnabled(enabled);
+        btnDelete.setEnabled(enabled);
+        setSymbolsEnabled(enabled);
+        if (isMyTurn) startTimer(isOpponentChance ? 10 : 30);
+    }
+
+    private void onSymbolSelected(String sym) {
+        if (!isMyTurn) return;
+        for (int i = 0; i < 4; i++) {
+            if (currentGuess.get(i).isEmpty()) {
+                currentGuess.set(i, sym);
+                if (isOpponentChance) tvOppFields[i].setText(sym);
+                else tvAttemptFields[attemptIndex][i].setText(sym);
+                break;
+            }
+        }
+    }
+
+    private void deleteLastSymbol() {
+        if (!isMyTurn) return;
+        for (int i = 3; i >= 0; i--) {
+            if (!currentGuess.get(i).isEmpty()) {
+                currentGuess.set(i, "");
+                if (isOpponentChance) tvOppFields[i].setText("?");
+                else tvAttemptFields[attemptIndex][i].setText("?");
+                break;
+            }
+        }
+    }
+
+    private void submitGuess() {
+        for (String s : currentGuess) if (s.isEmpty()) return;
+
+        List<String> solution = combo.getCombination();
+        boolean correct = SkockoLogic.isCorrect(currentGuess, solution);
+        int m = SkockoLogic.countMatches(currentGuess, solution);
+        int w = SkockoLogic.countWrongPosition(currentGuess, solution);
+
+        if (matchRef != null) {
+            String rk = "round" + currentRound;
+            if (isOpponentChance) {
+                matchRef.child(rk).child("oppChanceGuess").setValue(currentGuess);
+                matchRef.child(rk).child("oppChanceCorrect").setValue(correct);
+                if (correct) {
+                    // Update score
+                    matchRef.child(rk).child("scores").child(myId).get().addOnSuccessListener(ds -> {
+                       int current = ds.exists() ? ds.getValue(Integer.class) : 0;
+                       matchRef.child(rk).child("scores").child(myId).setValue(current + 10);
+                    });
+                }
+                matchRef.child(rk).child("phase").setValue("done");
+            } else {
+                matchRef.child(rk).child("attempts").child(String.valueOf(attemptIndex)).setValue(currentGuess);
+                Map<String, Integer> res = new HashMap<>();
+                res.put("matches", m); res.put("wrongPos", w);
+                matchRef.child(rk).child("results").child(String.valueOf(attemptIndex)).setValue(res);
+
+                if (correct) {
+                    int pts = SkockoLogic.pointsForAttempt(attemptIndex + 1);
+                    matchRef.child(rk).child("scores").child(myId).get().addOnSuccessListener(ds -> {
+                        int curr = ds.exists() ? ds.getValue(Integer.class) : 0;
+                        matchRef.child(rk).child("scores").child(myId).setValue(curr + pts);
+                        matchRef.child(rk).child("phase").setValue("done");
+                    });
+                } else if (attemptIndex >= 5) {
+                    matchRef.child(rk).child("phase").setValue("opponent_chance");
+                    matchRef.child(rk).child("player").setValue(opponentId);
+                } else {
+                    currentGuess = new ArrayList<>(Arrays.asList("", "", "", ""));
+                }
+            }
+        }
+    }
+
+    private void endRound() {
+        if (timer != null) timer.cancel();
+        if (currentRound == 1) {
+            new Handler().postDelayed(() -> startMultiplayerRound(2), 2000);
+        } else {
+            statsRepo.saveSkockoResult(true, 0, new StatsRepository.Callback<Void>() {
+                @Override public void onSuccess(Void result) {}
+                @Override public void onError(Exception e) {}
+            });
+            showFinalScore();
+        }
+    }
+
+    private void startTimer(int seconds) {
+        if (timer != null) timer.cancel();
+        timer = new CountDownTimer(seconds * 1000L, 1000) {
+            @Override public void onTick(long ms) { tvTimer.setText(String.valueOf(ms / 1000)); }
+            @Override public void onFinish() {
+                tvTimer.setText("0");
+                if (isMyTurn && matchRef != null) {
+                    if (isOpponentChance) matchRef.child("round" + currentRound).child("phase").setValue("done");
+                    else if (attemptIndex >= 5) {
+                        matchRef.child("round" + currentRound).child("phase").setValue("opponent_chance");
+                        matchRef.child("round" + currentRound).child("player").setValue(opponentId);
+                    } else {
+                         // Force submit or pass turn if needed
+                    }
+                }
+            }
+        }.start();
     }
 
     private void resetGrid() {
@@ -157,358 +387,59 @@ public class SkockoActivity extends AppCompatActivity {
                 tvAttemptFields[i][f].setText("?");
                 tvAttemptFields[i][f].setBackgroundColor(getColor(R.color.primary_green_light));
             }
-            setFeedbackCircles(llAttemptFeedback[i], -1, -1);
+            llAttemptFeedback[i].removeAllViews();
         }
-        for (int f = 0; f < 4; f++) {
-            tvOppFields[f].setText("?");
-            tvOppFields[f].setBackgroundColor(0xFFF0F0F0);
-        }
-        setFeedbackCircles(llOppFeedback, -1, -1);
+        for (int f = 0; f < 4; f++) tvOppFields[f].setText("?");
+        llOppFeedback.removeAllViews();
     }
 
-    // ── Runda 2: simulacija protivnika pa moj pokušaj ─────────────────────────
-    private void simulateOpponentThenMyTurn() {
-        List<String> solution = combo.getCombination();
-        Random rnd = new Random();
-
-        // Simuliraj protivnikovih 6 pokusaja sa delay-om
-        // Koristimo rekurzivni postDelayed da animiramo red po red
-        simulateOppRow(0, solution, rnd);
-    }
-
-    private void simulateOppRow(int row, List<String> solution, Random rnd) {
-        if (row >= 6) {
-            // Svih 6 protivnikovih pokusaja prikazano — daj mi moj red
-            tvRound.postDelayed(() -> giveMyR2Turn(solution), 800);
-            return;
-        }
-
-        tvRound.postDelayed(() -> {
-            List<String> oppGuess = randomGuess(rnd);
-            int matches  = SkockoLogic.countMatches(oppGuess, solution);
-            int wrongPos = SkockoLogic.countWrongPosition(oppGuess, solution);
-            boolean correct = SkockoLogic.isCorrect(oppGuess, solution);
-
-            for (int f = 0; f < 4; f++)
-                tvAttemptFields[row][f].setText(oppGuess.get(f));
-            setFeedbackCircles(llAttemptFeedback[row], matches, wrongPos);
-
-            if (correct) {
-                // Protivnik pogodio pre 6. reda — daj bodove i preskoci ostatak
-                int pts = SkockoLogic.pointsForAttempt(row + 1);
-                opponentScore += pts;
-                updateScoreBar();
-                Toast.makeText(this, "Protivnik pogodio u " + (row+1) + ". pokušaju!", Toast.LENGTH_SHORT).show();
-                // Popuni ostatak redova prazno i idi na moj red
-                tvRound.postDelayed(() -> giveMyR2Turn(solution), 800);
-                return;
-            }
-
-            // Sledeci red
-            simulateOppRow(row + 1, solution, rnd);
-        }, 400L * (row + 1));
-    }
-
-    private void giveMyR2Turn(List<String> solution) {
-        waitingForMyR2Guess = true;
-        isMyTurn = true;
-        currentGuess = new ArrayList<>(Arrays.asList("", "", "", ""));
-
-        // Ocisti 7. red (opp red) za moj unos
-        for (int f = 0; f < 4; f++) {
-            tvOppFields[f].setText("?");
-            tvOppFields[f].setBackgroundColor(getColor(R.color.primary_green_light));
-        }
-        setFeedbackCircles(llOppFeedback, -1, -1);
-
-        Toast.makeText(this, "Tvoj red! Pogodi protivnikovu kombinaciju.", Toast.LENGTH_SHORT).show();
-        setSymbolsEnabled(true);
-        btnDelete.setEnabled(true);
-        updateFinishButton(false);
-        startTimer(30);
-    }
-
-    // ── Symbol selection ──────────────────────────────────────────────────────
-    private void onSymbolSelected(String symbol) {
-        if (!isMyTurn || roundWon) return;
-
-        if (waitingForMyR2Guess) {
-            // Popunjavam 7. red (tvOppFields)
-            for (int f = 0; f < 4; f++) {
-                if (currentGuess.get(f).isEmpty()) {
-                    currentGuess.set(f, symbol);
-                    tvOppFields[f].setText(symbol);
-                    break;
-                }
-            }
-            if (isRowFull()) updateFinishButton(true);
-        } else {
-            // Runda 1 — popunjavam attempt redove
-            for (int f = 0; f < 4; f++) {
-                if (currentGuess.get(f).isEmpty()) {
-                    currentGuess.set(f, symbol);
-                    tvAttemptFields[attemptIndex][f].setText(symbol);
-                    break;
-                }
-            }
-            if (isRowFull()) updateFinishButton(true);
-        }
-    }
-
-    private void deleteLastSymbol() {
-        if (!isMyTurn || roundWon) return;
-
-        if (waitingForMyR2Guess) {
-            for (int f = 3; f >= 0; f--) {
-                if (!currentGuess.get(f).isEmpty()) {
-                    currentGuess.set(f, "");
-                    tvOppFields[f].setText("?");
-                    updateFinishButton(false);
-                    break;
-                }
-            }
-        } else {
-            for (int f = 3; f >= 0; f--) {
-                if (!currentGuess.get(f).isEmpty()) {
-                    currentGuess.set(f, "");
-                    tvAttemptFields[attemptIndex][f].setText("?");
-                    updateFinishButton(false);
-                    break;
-                }
-            }
-        }
-    }
-
-    private boolean isRowFull() {
-        for (String s : currentGuess) if (s.isEmpty()) return false;
-        return true;
-    }
-
-    private void clearCurrentGuessRow() {
-        currentGuess = new ArrayList<>(Arrays.asList("", "", "", ""));
-        if (attemptIndex < 6) {
-            for (int f = 0; f < 4; f++) tvAttemptFields[attemptIndex][f].setText("?");
-        }
-        updateFinishButton(false);
-    }
-
-    // ── Submit ────────────────────────────────────────────────────────────────
-    private void submitGuess() {
-        if (!isRowFull()) {
-            Toast.makeText(this, "Popuni sva 4 polja!", Toast.LENGTH_SHORT).show();
-            return;
-        }
-
-        List<String> solution = combo.getCombination();
-
-        if (waitingForMyR2Guess) {
-            // Moj jedini pokusaj u rundi 2
-            boolean correct  = SkockoLogic.isCorrect(currentGuess, solution);
-            int matches      = SkockoLogic.countMatches(currentGuess, solution);
-            int wrongPos     = SkockoLogic.countWrongPosition(currentGuess, solution);
-
-            setFeedbackCircles(llOppFeedback, matches, wrongPos);
-
-            if (correct) {
-                int pts = SkockoLogic.pointsForAttempt(1); // bonus pokusaj
-                myScore += pts;
-                updateScoreBar();
-                Toast.makeText(this, "Pogodio! +" + pts + " bodova", Toast.LENGTH_SHORT).show();
-            } else {
-                // Otkrij tacnu kombinaciju
-                for (int f = 0; f < 4; f++) tvOppFields[f].setText(solution.get(f));
-                setFeedbackCircles(llOppFeedback, 4, 0);
-                Toast.makeText(this, "Nisi pogodio.", Toast.LENGTH_SHORT).show();
-            }
-
-            if (timer != null) timer.cancel();
-            setSymbolsEnabled(false);
-            btnDelete.setEnabled(false);
-            waitingForMyR2Guess = false;
-            tvRound.postDelayed(this::showFinalScore, 1500);
-
-        } else {
-            // Runda 1 — normalan tok
-            boolean correct = SkockoLogic.isCorrect(currentGuess, solution);
-            int matches     = SkockoLogic.countMatches(currentGuess, solution);
-            int wrongPos    = SkockoLogic.countWrongPosition(currentGuess, solution);
-
-            setFeedbackCircles(llAttemptFeedback[attemptIndex], matches, wrongPos);
-
-            if (correct) {
-                roundWon = true;
-                int pts = SkockoLogic.pointsForAttempt(attemptIndex + 1);
-                myScore += pts;
-                updateScoreBar();
-                Toast.makeText(this, "Tačno! +" + pts + " bodova", Toast.LENGTH_SHORT).show();
-                endRound1();
-            } else {
-                attemptIndex++;
-                if (attemptIndex >= 6) {
-                    Toast.makeText(this, "Nisi pogodio kombinaciju.", Toast.LENGTH_SHORT).show();
-                    endRound1();
-                } else {
-                    clearCurrentGuessRow();
-                }
-            }
-        }
-    }
-
-    private void endRound1() {
-        if (timer != null) timer.cancel();
-        setSymbolsEnabled(false);
-        btnDelete.setEnabled(false);
-        updateFinishButton(false);
-
-        // Otkrij resenje u opp redu
-        List<String> sol = combo.getCombination();
-        for (int f = 0; f < 4; f++) tvOppFields[f].setText(sol.get(f));
-        setFeedbackCircles(llOppFeedback, 4, 0);
-
-        // Ucitaj novu kombinaciju za rundu 2
-        tvRound.postDelayed(() -> loadComboAndStart(2), 2000);
-    }
-
-    // ── Timer ─────────────────────────────────────────────────────────────────
-    private void startTimer(int seconds) {
-        tvTimer.setText(String.valueOf(seconds));
-        if (timer != null) timer.cancel();
-        timer = new CountDownTimer(seconds * 1000L, 1000) {
-            @Override public void onTick(long ms) { tvTimer.setText(String.valueOf((int)(ms / 1000))); }
-            @Override public void onFinish() {
-                tvTimer.setText("0");
-                onTimeUp();
-            }
-        }.start();
-    }
-
-    private void onTimeUp() {
-        setSymbolsEnabled(false);
-        btnDelete.setEnabled(false);
-
-        if (waitingForMyR2Guess) {
-            // Isteklo vreme za moj pokusaj u rundi 2
-            List<String> sol = combo.getCombination();
-            for (int f = 0; f < 4; f++) tvOppFields[f].setText(sol.get(f));
-            setFeedbackCircles(llOppFeedback, 4, 0);
-            waitingForMyR2Guess = false;
-            tvRound.postDelayed(this::showFinalScore, 1500);
-        } else {
-            // Isteklo vreme u rundi 1
-            endRound1();
-        }
-    }
-
-    // ── Helpers ───────────────────────────────────────────────────────────────
-    private List<String> randomGuess(Random rnd) {
-        List<String> guess = new ArrayList<>();
-        for (int i = 0; i < 4; i++) guess.add(SYMBOLS.get(rnd.nextInt(SYMBOLS.size())));
-        return guess;
-    }
-
-    private void setFeedbackCircles(LinearLayout ll, int correct, int wrongPos) {
+    private void setFeedbackCircles(LinearLayout ll, int red, int yellow) {
         ll.removeAllViews();
-        ll.setOrientation(LinearLayout.HORIZONTAL);
-        ll.setGravity(Gravity.CENTER);
-
-        int red    = correct < 0 ? 0 : correct;
-        int yellow = correct < 0 ? 0 : wrongPos;
-        int empty  = correct < 0 ? 4 : Math.max(0, 4 - red - yellow);
-
-        for (int i = 0; i < red; i++)    ll.addView(makeCircle("#E53935"));
+        for (int i = 0; i < red; i++) ll.addView(makeCircle("#E53935"));
         for (int i = 0; i < yellow; i++) ll.addView(makeCircle("#FDD835"));
-        for (int i = 0; i < empty; i++)  ll.addView(makeCircle("#CCCCCC"));
+        for (int i = 0; i < (4 - red - yellow); i++) ll.addView(makeCircle("#CCCCCC"));
     }
 
-    private android.view.View makeCircle(String hexColor) {
-        android.view.View v = new android.view.View(this);
-        int size = dpToPx(12);
-        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(size, size);
-        lp.setMargins(dpToPx(2), 0, dpToPx(2), 0);
+    private View makeCircle(String color) {
+        View v = new View(this);
+        int s = (int)(12 * getResources().getDisplayMetrics().density);
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(s, s);
+        lp.setMargins(2, 0, 2, 0);
         v.setLayoutParams(lp);
-        android.graphics.drawable.GradientDrawable shape = new android.graphics.drawable.GradientDrawable();
-        shape.setShape(android.graphics.drawable.GradientDrawable.OVAL);
-        shape.setColor(android.graphics.Color.parseColor(hexColor));
-        v.setBackground(shape);
+        android.graphics.drawable.GradientDrawable d = new android.graphics.drawable.GradientDrawable();
+        d.setShape(android.graphics.drawable.GradientDrawable.OVAL);
+        d.setColor(android.graphics.Color.parseColor(color));
+        v.setBackground(d);
         return v;
     }
 
-    private int dpToPx(int dp) {
-        return Math.round(dp * getResources().getDisplayMetrics().density);
-    }
-
-    private void setSymbolsEnabled(boolean enabled) {
-        if (tvSymbolButtons == null) return;
-        for (TextView tv : tvSymbolButtons) if (tv != null) tv.setEnabled(enabled);
-    }
-
-    private void updateScoreBar() {
-        tvMyScore.setText(String.valueOf(myScore));
-        tvOpponentScore.setText(String.valueOf(opponentScore));
-    }
-
-    private void updateFinishButton(boolean isConfirmMode) {
-        if (isConfirmMode) {
-            btnFinish.setText("Potvrdi pokušaj");
-            btnFinish.setOnClickListener(v -> submitGuess());
-        } else {
-            btnFinish.setText("Sledeća igra →");
-            btnFinish.setOnClickListener(v -> goNext());
-        }
+    private void setSymbolsEnabled(boolean e) {
+        for (TextView t : tvSymbolButtons) if (t != null) t.setEnabled(e);
     }
 
     private void showFinalScore() {
-        if (timer != null) timer.cancel();
-        setSymbolsEnabled(false);
-        new AlertDialog.Builder(this)
-                .setTitle("Skočko završen")
-                .setMessage("Tvoji bodovi: " + myScore + "\nProtivnik: " + opponentScore)
-                .setCancelable(false)
-                .setPositiveButton("Dalje", (d, w) -> goNext())
-                .show();
+        new AlertDialog.Builder(this).setTitle("Kraj").setMessage("Bodovi: " + myScoreTotal).setPositiveButton("Dalje", (d, w) -> goNext()).show();
     }
 
     private void goNext() {
-        if (timer != null) timer.cancel();
+        Intent i = new Intent(this, KorakPoKorakActivity.class);
+        i.putExtra("isGuest", isGuest); i.putExtra("matchId", matchId); i.putExtra("myId", myId);
+        i.putExtra("opponentId", opponentId); i.putExtra("isPlayer1", isPlayer1);
+        i.putExtra("totalMyScore", myScoreTotal); i.putExtra("totalOpponentScore", oppScoreTotal);
+        startActivity(i); finish();
+    }
 
-        int prevMy  = getIntent().getIntExtra("totalMyScore", 0);
-        int prevOpp = getIntent().getIntExtra("totalOpponentScore", 0);
-
-        Intent intent = new Intent(this, KorakPoKorakActivity.class);
-        intent.putExtra("isGuest",            getIntent().getBooleanExtra("isGuest", false));
-        intent.putExtra("matchId",            getIntent().getStringExtra("matchId"));
-        intent.putExtra("myId",               getIntent().getStringExtra("myId"));
-        intent.putExtra("opponentId",         getIntent().getStringExtra("opponentId"));
-        intent.putExtra("isPlayer1",          getIntent().getBooleanExtra("isPlayer1", true));
-        intent.putExtra("totalMyScore",       prevMy + myScore);
-        intent.putExtra("totalOpponentScore", prevOpp + opponentScore);
-        startActivity(intent);
+    private void forfeit() {
+        if (matchRef != null) matchRef.getParent().child("status").setValue("forfeit_" + myId);
         finish();
     }
 
-    private void confirmLeave() {
-        new AlertDialog.Builder(this)
-                .setTitle("Napusti igru?")
-                .setMessage("Izgubićeš partiju. Nastavi?")
-                .setPositiveButton("Da", (d, w) -> leaveGame())
-                .setNegativeButton("Ne", null)
-                .show();
-    }
-
-    private void leaveGame() {
-        if (timer != null) timer.cancel();
-        boolean isGuest = getIntent().getBooleanExtra("isGuest", false);
-        Intent intent = isGuest
-                ? new Intent(this, com.example.slagalica.ui.main.GuestActivity.class)
-                : new Intent(this, com.example.slagalica.MainActivity.class);
-        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
-        startActivity(intent);
-        finish();
-    }
+    private void showError() { finish(); }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
         if (timer != null) timer.cancel();
+        if (roundListener != null && matchRef != null) matchRef.child("round" + currentRound).removeEventListener(roundListener);
     }
 }

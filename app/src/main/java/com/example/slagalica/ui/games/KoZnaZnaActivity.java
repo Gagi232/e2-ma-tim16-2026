@@ -9,6 +9,7 @@ import android.view.View;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.example.slagalica.MainActivity;
@@ -32,42 +33,22 @@ import java.util.Map;
 
 public class KoZnaZnaActivity extends AppCompatActivity {
 
-    // UI - ID-evi iz activity_ko_zna_zna.xml
-    private TextView tvQuestion;
-    private TextView tvTimer;
-    private TextView tvMyScore;
-    private TextView tvOpponentScore;
-    private TextView tvQuestionNumber;
-    private MaterialButton btnAnswer1;
-    private MaterialButton btnAnswer2;
-    private MaterialButton btnAnswer3;
-    private MaterialButton btnAnswer4;
+    private TextView tvQuestion, tvTimer, tvMyScore, tvOpponentScore, tvQuestionNumber;
+    private MaterialButton btnAnswer1, btnAnswer2, btnAnswer3, btnAnswer4;
 
-    // Logika
     private final KoZnaZnaLogic logic = new KoZnaZnaLogic();
-
-    // Podaci
     private final GameRepository gameRepo = new GameRepository();
     private List<KoZnaZnaQuestion> questions = new ArrayList<>();
 
-    // Stanje
     private int currentIndex = 0;
     private int myScore = 0;
     private int opponentScore = 0;
     private boolean answered = false;
     private CountDownTimer timer;
 
-    // Match
-    private String matchId;
-    private String myId;
-    private String opponentId;
-    private boolean isPlayer1;
-    private boolean isGuest;
-
-
-    private int correctCount = 0;
-    private int wrongCount   = 0;
-    // Firebase Realtime DB
+    private String matchId, myId, opponentId;
+    private boolean isPlayer1, isGuest;
+    private int correctCount = 0, wrongCount = 0;
     private DatabaseReference matchRef;
 
     @Override
@@ -80,23 +61,20 @@ public class KoZnaZnaActivity extends AppCompatActivity {
         myId       = getIntent().getStringExtra("myId");
         opponentId = getIntent().getStringExtra("opponentId");
         isPlayer1  = getIntent().getBooleanExtra("isPlayer1", true);
+
         if (myId == null && !isGuest) {
-            com.google.firebase.auth.FirebaseUser fbUser = com.google.firebase.auth.FirebaseAuth.getInstance().getCurrentUser();
+            var fbUser = com.google.firebase.auth.FirebaseAuth.getInstance().getCurrentUser();
             if (fbUser != null) myId = fbUser.getUid();
         }
-        bindViews();
 
-        // btnFinish sakrivamo - igra sama napreduje
+        bindViews();
         findViewById(R.id.btnFinish).setVisibility(View.GONE);
         findViewById(R.id.btnLeave).setOnClickListener(v -> forfeit());
 
         if (isGuest || matchId == null) {
             loadSolo();
         } else {
-            matchRef = FirebaseDatabase.getInstance()
-                    .getReference("activeMatches")
-                    .child(matchId)
-                    .child("kzz");
+            matchRef = FirebaseDatabase.getInstance().getReference("activeMatches").child(matchId).child("kzz");
             setupMultiplayer();
         }
     }
@@ -118,32 +96,21 @@ public class KoZnaZnaActivity extends AppCompatActivity {
         btnAnswer4.setOnClickListener(v -> onAnswered(3));
     }
 
-    // ── Ucitavanje pitanja ────────────────────────────────────────────────────
-
     private void loadSolo() {
-        gameRepo.getRandomKoZnaZnaQuestions(
-                KoZnaZnaLogic.TOTAL_QUESTIONS,
-                result -> {
-                    questions = result;
-                    showQuestion(0);
-                },
-                error -> showError()
-        );
+        gameRepo.getRandomKoZnaZnaQuestions(KoZnaZnaLogic.TOTAL_QUESTIONS, result -> {
+            questions = result;
+            showQuestion(0);
+        }, e -> showError("Greška pri učitavanju solo pitanja"));
     }
 
     private void setupMultiplayer() {
         if (isPlayer1) {
-            gameRepo.getRandomKoZnaZnaQuestions(
-                    KoZnaZnaLogic.TOTAL_QUESTIONS,
-                    result -> {
-                        questions = result;
-                        List<String> ids = new ArrayList<>();
-                        for (KoZnaZnaQuestion q : result) ids.add(q.getId());
-                        matchRef.child("questionIds").setValue(ids)
-                                .addOnSuccessListener(v -> showQuestion(0));
-                    },
-                    error -> showError()
-            );
+            gameRepo.getRandomKoZnaZnaQuestions(KoZnaZnaLogic.TOTAL_QUESTIONS, result -> {
+                questions = result;
+                List<String> ids = new ArrayList<>();
+                for (KoZnaZnaQuestion q : result) ids.add(q.getId());
+                matchRef.child("questionIds").setValue(ids).addOnSuccessListener(v -> showQuestion(0));
+            }, e -> showError("Greška pri dobavljanju pitanja (P1)"));
         } else {
             waitForQuestionIds();
         }
@@ -152,40 +119,34 @@ public class KoZnaZnaActivity extends AppCompatActivity {
     private void waitForQuestionIds() {
         matchRef.child("questionIds").addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
-            public void onDataChange(DataSnapshot snapshot) {
+            public void onDataChange(@NonNull DataSnapshot snapshot) {
+                if (!snapshot.exists()) {
+                    new Handler().postDelayed(() -> waitForQuestionIds(), 1000);
+                    return;
+                }
                 List<String> ids = new ArrayList<>();
                 for (DataSnapshot child : snapshot.getChildren()) {
                     ids.add(child.getValue(String.class));
                 }
                 if (ids.isEmpty()) {
-                    new Handler().postDelayed(() -> waitForQuestionIds(), 800);
+                    new Handler().postDelayed(() -> waitForQuestionIds(), 1000);
                     return;
                 }
-                gameRepo.getQuestionsByIds(
-                        ids,
-                        result -> {
-                            questions = result;
-                            showQuestion(0);
-                        },
-                        error -> showError()
-                );
+                gameRepo.getQuestionsByIds(ids, result -> {
+                    questions = result;
+                    if (questions.isEmpty()) showError("Pitanja nisu pronađena u bazi!");
+                    else showQuestion(0);
+                }, e -> showError("Greška pri učitavanju pitanja po ID-u"));
             }
-
-            @Override
-            public void onCancelled(DatabaseError error) {
-                showError();
-            }
+            @Override public void onCancelled(@NonNull DatabaseError error) { showError("Firebase greška: " + error.getMessage()); }
         });
     }
-
-    // ── Prikaz pitanja ────────────────────────────────────────────────────────
 
     private void showQuestion(int index) {
         if (index >= questions.size()) {
             endGame();
             return;
         }
-
         currentIndex = index;
         answered = false;
 
@@ -194,181 +155,125 @@ public class KoZnaZnaActivity extends AppCompatActivity {
         tvQuestionNumber.setText("Pitanje " + (index + 1) + "/" + KoZnaZnaLogic.TOTAL_QUESTIONS);
 
         List<String> opts = q.getOptions();
-        btnAnswer1.setText(opts.get(0));
-        btnAnswer2.setText(opts.get(1));
-        btnAnswer3.setText(opts.get(2));
-        btnAnswer4.setText(opts.get(3));
+        btnAnswer1.setText(opts.get(0)); btnAnswer2.setText(opts.get(1));
+        btnAnswer3.setText(opts.get(2)); btnAnswer4.setText(opts.get(3));
 
         resetColors();
         enableButtons(true);
         updateScores();
         startTimer();
 
-        if (matchRef != null) {
-            listenForOpponentAnswer(index);
-        }
+        if (matchRef != null) listenForOpponentAnswer(index);
     }
-
-    // ── Timer ─────────────────────────────────────────────────────────────────
 
     private void startTimer() {
         if (timer != null) timer.cancel();
         timer = new CountDownTimer(KoZnaZnaLogic.QUESTION_TIME_MS, 100) {
-            @Override
-            public void onTick(long millisLeft) {
-                tvTimer.setText(String.valueOf((millisLeft / 1000) + 1));
-            }
-
-            @Override
-            public void onFinish() {
+            @Override public void onTick(long ms) { tvTimer.setText(String.valueOf((ms / 1000) + 1)); }
+            @Override public void onFinish() {
                 tvTimer.setText("0");
                 if (!answered) onTimeout();
             }
         }.start();
     }
 
-    // ── Odgovor ───────────────────────────────────────────────────────────────
-
     private void onAnswered(int selectedIndex) {
         if (answered) return;
         answered = true;
         if (timer != null) timer.cancel();
 
-        long timestamp = System.currentTimeMillis();
+        long ts = System.currentTimeMillis();
         boolean correct = (selectedIndex == questions.get(currentIndex).getCorrectIndex());
-        if (correct) correctCount++;
-        else if (selectedIndex >= 0) wrongCount++; // -1 je timeout, ne broji se
+        if (correct) correctCount++; else wrongCount++;
         showFeedback(selectedIndex, questions.get(currentIndex).getCorrectIndex());
 
         if (matchRef != null) {
-            writeAnswer(selectedIndex, correct, timestamp);
+            writeAnswer(selectedIndex, correct, ts);
         } else {
-            // Solo bodovanje kroz logiku
-            myScore += logic.calcSoloScore(selectedIndex,
-                    questions.get(currentIndex).getCorrectIndex());
+            myScore += logic.calcSoloScore(selectedIndex, questions.get(currentIndex).getCorrectIndex());
             updateScores();
         }
-
         new Handler().postDelayed(() -> showQuestion(currentIndex + 1), 1500);
     }
 
     private void onTimeout() {
         answered = true;
-        if (matchRef != null) {
-            writeAnswer(-1, false, -1L);
-        }
+        if (matchRef != null) writeAnswer(-1, false, -1L);
         new Handler().postDelayed(() -> showQuestion(currentIndex + 1), 500);
     }
 
-    private void writeAnswer(int index, boolean correct, long timestamp) {
+    private void writeAnswer(int index, boolean correct, long ts) {
         Map<String, Object> data = new HashMap<>();
-        data.put("answerIndex", index);
-        data.put("correct", correct);
-        data.put("timestamp", timestamp);
-        matchRef.child("answers")
-                .child(myId)
-                .child(String.valueOf(currentIndex))
-                .setValue(data);
+        data.put("answerIndex", index); data.put("correct", correct); data.put("timestamp", ts);
+        matchRef.child("answers").child(myId).child(String.valueOf(currentIndex)).setValue(data);
     }
-
-    // ── Multiplayer bodovanje ─────────────────────────────────────────────────
 
     private void listenForOpponentAnswer(int qIndex) {
         matchRef.child("answers").child(opponentId).child(String.valueOf(qIndex))
-                .addListenerForSingleValueEvent(new ValueEventListener() {
+                .addValueEventListener(new ValueEventListener() {
                     @Override
-                    public void onDataChange(DataSnapshot oppSnapshot) {
+                    public void onDataChange(@NonNull DataSnapshot oppSnapshot) {
                         if (!oppSnapshot.exists()) return;
                         matchRef.child("answers").child(myId).child(String.valueOf(qIndex))
                                 .addListenerForSingleValueEvent(new ValueEventListener() {
                                     @Override
-                                    public void onDataChange(DataSnapshot mySnapshot) {
+                                    public void onDataChange(@NonNull DataSnapshot mySnapshot) {
                                         if (!mySnapshot.exists()) return;
                                         applyMultiplayerScore(mySnapshot, oppSnapshot);
                                     }
-                                    @Override
-                                    public void onCancelled(DatabaseError error) {}
+                                    @Override public void onCancelled(@NonNull DatabaseError error) {}
                                 });
                     }
-                    @Override
-                    public void onCancelled(DatabaseError error) {}
+                    @Override public void onCancelled(@NonNull DatabaseError error) {}
                 });
     }
 
     private void applyMultiplayerScore(DataSnapshot mySnap, DataSnapshot oppSnap) {
-        Boolean myCorrect  = mySnap.child("correct").getValue(Boolean.class);
-        Boolean oppCorrect = oppSnap.child("correct").getValue(Boolean.class);
-        Long    myTs       = mySnap.child("timestamp").getValue(Long.class);
-        Long    oppTs      = oppSnap.child("timestamp").getValue(Long.class);
-        Integer myIdx      = mySnap.child("answerIndex").getValue(Integer.class);
-        Integer oppIdx     = oppSnap.child("answerIndex").getValue(Integer.class);
+        Boolean myC = mySnap.child("correct").getValue(Boolean.class);
+        Boolean oppC = oppSnap.child("correct").getValue(Boolean.class);
+        Long myT = mySnap.child("timestamp").getValue(Long.class);
+        Long oppT = oppSnap.child("timestamp").getValue(Long.class);
+        Integer myI = mySnap.child("answerIndex").getValue(Integer.class);
+        Integer oppI = oppSnap.child("answerIndex").getValue(Integer.class);
 
-        if (myCorrect  == null) myCorrect  = false;
-        if (oppCorrect == null) oppCorrect = false;
-        if (myTs       == null) myTs       = Long.MAX_VALUE;
-        if (oppTs      == null) oppTs      = Long.MAX_VALUE;
-        if (myIdx      == null) myIdx      = -1;
-        if (oppIdx     == null) oppIdx     = -1;
-
-        // Logika racuna bodove
-        int[] pts = logic.calcMultiScore(myIdx, myCorrect, myTs, oppIdx, oppCorrect, oppTs);
-        myScore      += pts[0];
+        int[] pts = logic.calcMultiScore(
+                myI != null ? myI : -1, myC != null && myC, myT != null ? myT : Long.MAX_VALUE,
+                oppI != null ? oppI : -1, oppC != null && oppC, oppT != null ? oppT : Long.MAX_VALUE);
+        
+        myScore += pts[0];
         opponentScore += pts[1];
-
-        runOnUiThread(this::updateScores);
+        updateScores();
     }
-
-    // ── Kraj igre ─────────────────────────────────────────────────────────────
 
     private void endGame() {
         if (timer != null) timer.cancel();
-
         if (matchRef != null) {
             matchRef.child("finalScore").child(myId).setValue(myScore);
             matchRef.child("done").child(myId).setValue(true);
         }
+        new StatsRepository().saveKoZnaZnaResult(correctCount, wrongCount, myScore, new StatsRepository.Callback<Void>() {
+            @Override public void onSuccess(Void r) {}
+            @Override public void onError(Exception e) {}
+        });
 
-        // ── NOVO: sačuvaj statistiku Ko zna zna ──
-        int correct = 0, wrong = 0;
-        // Rekonstruiši correct/wrong iz bodova (svaki tačan = +10, netačan = -5)
-        // Alternativno: dodaj brojače u klasu
-        StatsRepository statsRepo = new StatsRepository();
-        statsRepo.saveKoZnaZnaResult(correctCount, wrongCount, myScore,
-                new StatsRepository.Callback<Void>() {
-                    @Override public void onSuccess(Void r) {}
-                    @Override public void onError(Exception e) {}
-                });
-
-        Intent intent = new Intent(this, SpojniceActivity.class);
-        intent.putExtra("isGuest",          isGuest);
-        intent.putExtra("matchId",          matchId);
-        intent.putExtra("myId",             myId);
-        intent.putExtra("opponentId",       opponentId);
-        intent.putExtra("isPlayer1",        isPlayer1);
-        intent.putExtra("kzzMyScore",       myScore);
-        intent.putExtra("kzzOpponentScore", opponentScore);
-        startActivity(intent);
-        finish();
+        Intent i = new Intent(this, SpojniceActivity.class);
+        i.putExtra("isGuest", isGuest); i.putExtra("matchId", matchId);
+        i.putExtra("myId", myId); i.putExtra("opponentId", opponentId);
+        i.putExtra("isPlayer1", isPlayer1);
+        i.putExtra("kzzMyScore", myScore); i.putExtra("kzzOpponentScore", opponentScore);
+        startActivity(i); finish();
     }
+
     private void forfeit() {
         if (timer != null) timer.cancel();
-        if (matchRef != null) {
-            matchRef.getParent().child("status").setValue("forfeit_" + myId);
-        }
-        Intent i = new Intent(this, isGuest ? GuestActivity.class : MainActivity.class);
-        i.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
-        startActivity(i);
+        if (matchRef != null) matchRef.getParent().child("status").setValue("forfeit_" + myId);
         finish();
     }
-
-    // ── UI pomocne metode ─────────────────────────────────────────────────────
 
     private void showFeedback(int selected, int correct) {
         enableButtons(false);
         getButton(correct).setBackgroundTintList(ColorStateList.valueOf(0xFF4CAF50));
-        if (selected != correct) {
-            getButton(selected).setBackgroundTintList(ColorStateList.valueOf(0xFFF44336));
-        }
+        if (selected != correct && selected >= 0) getButton(selected).setBackgroundTintList(ColorStateList.valueOf(0xFFF44336));
     }
 
     private void resetColors() {
@@ -380,19 +285,12 @@ public class KoZnaZnaActivity extends AppCompatActivity {
     }
 
     private void enableButtons(boolean enabled) {
-        btnAnswer1.setEnabled(enabled);
-        btnAnswer2.setEnabled(enabled);
-        btnAnswer3.setEnabled(enabled);
-        btnAnswer4.setEnabled(enabled);
+        btnAnswer1.setEnabled(enabled); btnAnswer2.setEnabled(enabled);
+        btnAnswer3.setEnabled(enabled); btnAnswer4.setEnabled(enabled);
     }
 
     private MaterialButton getButton(int index) {
-        switch (index) {
-            case 0: return btnAnswer1;
-            case 1: return btnAnswer2;
-            case 2: return btnAnswer3;
-            default: return btnAnswer4;
-        }
+        return index==0?btnAnswer1:index==1?btnAnswer2:index==2?btnAnswer3:btnAnswer4;
     }
 
     private void updateScores() {
@@ -400,8 +298,8 @@ public class KoZnaZnaActivity extends AppCompatActivity {
         tvOpponentScore.setText(String.valueOf(opponentScore));
     }
 
-    private void showError() {
-        Toast.makeText(this, "Greska pri ucitavanju pitanja!", Toast.LENGTH_SHORT).show();
+    private void showError(String msg) {
+        Toast.makeText(this, msg, Toast.LENGTH_SHORT).show();
         finish();
     }
 
@@ -410,6 +308,4 @@ public class KoZnaZnaActivity extends AppCompatActivity {
         super.onDestroy();
         if (timer != null) timer.cancel();
     }
-
-
 }

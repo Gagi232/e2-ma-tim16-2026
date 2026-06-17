@@ -25,7 +25,6 @@ public class NotificationRepository {
                                               OnError onError) {
         return db.collection(COLLECTION)
                 .whereEqualTo("userId", userId)
-                .orderBy("createdAt", Query.Direction.DESCENDING)
                 .addSnapshotListener((snap, e) -> {
                     if (e != null) { onError.run(e); return; }
                     List<AppNotification> list = new ArrayList<>();
@@ -36,6 +35,8 @@ public class NotificationRepository {
                             list.add(n);
                         }
                     }
+                    // Manual sort if index is not ready
+                    list.sort((a, b) -> Long.compare(b.getCreatedAt(), a.getCreatedAt()));
                     onUpdate.run(list);
                 });
     }

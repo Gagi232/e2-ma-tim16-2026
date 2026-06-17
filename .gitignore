@@ -6,4 +6,4 @@ build/reports/problems/problems-report.html
 .idea/
 build/
 *.iml
-local.properties
+local

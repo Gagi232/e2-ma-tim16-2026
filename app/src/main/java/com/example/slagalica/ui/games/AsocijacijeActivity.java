@@ -3,22 +3,37 @@ package com.example.slagalica.ui.games;
 import android.content.Intent;
 import android.os.Bundle;
 import android.os.CountDownTimer;
+import android.os.Handler;
 import android.view.View;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.cardview.widget.CardView;
 
 import com.example.slagalica.R;
 import com.example.slagalica.data.model.Association;
+import com.example.slagalica.data.model.User;
 import com.example.slagalica.data.repository.GameRepository;
+import com.example.slagalica.data.repository.StatsRepository;
+import com.example.slagalica.data.repository.UserRepository;
 import com.example.slagalica.logic.AssociationLogic;
+import com.example.slagalica.logic.LeagueLogic;
+import com.example.slagalica.ui.main.GuestActivity;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.textfield.TextInputEditText;
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.ValueEventListener;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 
 public class AsocijacijeActivity extends AppCompatActivity {
 
@@ -28,45 +43,61 @@ public class AsocijacijeActivity extends AppCompatActivity {
     private TextView[] tvColSolution;
     private CardView cardFinalSolution;
     private TextInputEditText etAnswer;
-    private MaterialButton btnFinish, btnLeave;
+    private MaterialButton btnPass, btnLeave;
 
-    // Dugmici za odabir sta se pogadja
     private MaterialButton btnGuessCol1, btnGuessCol2, btnGuessCol3, btnGuessCol4, btnGuessFinal;
 
-    // ── State ────────────────────────────────────────────────────────────────
+    // ── Match State ──────────────────────────────────────────────────────────
+    private String matchId, myId, opponentId;
+    private boolean isPlayer1, isGuest;
+    private DatabaseReference matchRef;
+
     private Association association;
     private int currentRound = 1;
-    private int myScore = 0;
-    private int opponentScore = 0;
+    private int myScoreTotal = 0;
+    private int oppScoreTotal = 0;
 
-    private boolean[] colSolved;
-    private int[] hiddenFields;
-    private boolean[] fieldRevealed;
-    private boolean finalSolved;
-    private boolean isMyTurn;
+    private boolean[] colSolved = new boolean[4];
+    private boolean[] fieldRevealed = new boolean[16];
+    private boolean finalSolved = false;
+    private boolean isMyTurn = false;
+    private boolean hasOpenedInTurn = false;
+    private String currentTurnId;
 
-    // Koji col/final trenutno pogadjamo (-1 = nista nije selektovano, 0-3 = kolona, 4 = final)
     private int activeGuessTarget = -1;
-
     private CountDownTimer timer;
-    private int timeLeft;
-
-    private static final int ROUND_SECS = 120;
+    private static final int ROUND_SECS = 240; // Spec: 4 mins total for 2 rounds? (2*2min)
 
     private final GameRepository repo = new GameRepository();
+    private final StatsRepository statsRepo = new StatsRepository();
+    private final UserRepository userRepo = new UserRepository();
+    private ValueEventListener roundListener;
 
-    private boolean waitingForGuess = false;
-
-    // ────────────────────────────────────────────────────────────────────────
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_asocijacije);
+
+        isGuest    = getIntent().getBooleanExtra("isGuest", false);
+        matchId    = getIntent().getStringExtra("matchId");
+        myId       = getIntent().getStringExtra("myId");
+        opponentId = getIntent().getStringExtra("opponentId");
+        isPlayer1  = getIntent().getBooleanExtra("isPlayer1", true);
+
+        myScoreTotal  = getIntent().getIntExtra("totalMyScore", 0);
+        oppScoreTotal = getIntent().getIntExtra("totalOpponentScore", 0);
+
         bindViews();
-        loadAssociationAndStartRound(1);
+        updateTopBar();
+
+        if (isGuest || matchId == null) {
+            loadSolo();
+        } else {
+            matchRef = FirebaseDatabase.getInstance().getReference("activeMatches").child(matchId).child("asocijacije");
+            startMultiplayerRound(1);
+        }
     }
 
-    // ── Bind ─────────────────────────────────────────────────────────────────
     private void bindViews() {
         tvTimer         = findViewById(R.id.tvTimer);
         tvMyScore       = findViewById(R.id.tvMyScore);
@@ -75,10 +106,12 @@ public class AsocijacijeActivity extends AppCompatActivity {
         tvFinalSolution = findViewById(R.id.tvFinalSolution);
         cardFinalSolution = findViewById(R.id.cardFinalSolution);
         etAnswer        = findViewById(R.id.etAnswer);
-        btnFinish       = findViewById(R.id.btnFinish);
+        btnPass         = findViewById(R.id.btnFinish); // Using btnFinish for Pass
         btnLeave        = findViewById(R.id.btnLeave);
 
-        // Guess target buttons — dodaj ove u layout (vidi napomenu ispod)
+        btnPass.setText("Sledeći");
+        btnPass.setVisibility(View.GONE);
+
         btnGuessCol1  = findViewById(R.id.btnGuessCol1);
         btnGuessCol2  = findViewById(R.id.btnGuessCol2);
         btnGuessCol3  = findViewById(R.id.btnGuessCol3);
@@ -103,366 +136,363 @@ public class AsocijacijeActivity extends AppCompatActivity {
         tvColSolution = new TextView[4];
         for (int c = 0; c < 4; c++) tvColSolution[c] = findViewById(solIds[c]);
 
-        // Guess target button listeners
         btnGuessCol1.setOnClickListener(v -> selectGuessTarget(0));
         btnGuessCol2.setOnClickListener(v -> selectGuessTarget(1));
         btnGuessCol3.setOnClickListener(v -> selectGuessTarget(2));
         btnGuessCol4.setOnClickListener(v -> selectGuessTarget(3));
         btnGuessFinal.setOnClickListener(v -> selectGuessTarget(4));
 
-        // Potvrda odgovora iz etAnswer
         etAnswer.setOnEditorActionListener((v, actionId, event) -> {
             submitAnswer();
             return true;
         });
 
-        btnFinish.setOnClickListener(v -> goNext());
-        btnLeave.setOnClickListener(v -> confirmLeave());
+        btnPass.setOnClickListener(v -> switchTurn());
+        btnLeave.setOnClickListener(v -> forfeit());
     }
 
-    // ── Load & start round ────────────────────────────────────────────────────
-    private void loadAssociationAndStartRound(int round) {
-        repo.getRandomAssociation(
-                assoc -> {
-                    association = assoc;
-                    startRound(round);
-                },
-                e -> Toast.makeText(this, "Greška pri učitavanju asocijacije.", Toast.LENGTH_SHORT).show()
-        );
+    private void updateTopBar() {
+        userRepo.getCurrentUser(new UserRepository.Callback<User>() {
+            @Override
+            public void onSuccess(User user) {
+                ((TextView) findViewById(R.id.tvTokens)).setText(String.valueOf(user.getTokens()));
+                ((TextView) findViewById(R.id.tvStars)).setText(String.valueOf(user.getStars()));
+                int league = LeagueLogic.calculateLeague(user.getStars());
+                ((TextView) findViewById(R.id.tvLeague)).setText(LeagueLogic.getLeagueIcon(league));
+            }
+            @Override public void onError(Exception e) {}
+        });
     }
 
-    // ── Round lifecycle ───────────────────────────────────────────────────────
-    private void startRound(int round) {
-        currentRound  = round;
-        isMyTurn      = (round == 1);
-        activeGuessTarget = -1;
+    private void loadSolo() {
+        repo.getRandomAssociation(assoc -> {
+            association = assoc;
+            setupRoundUI(1);
+            isMyTurn = true;
+            startTimer(120); // 2 min per round
+        }, e -> showError());
+    }
 
-        colSolved     = new boolean[4];
-        hiddenFields  = new int[]{4, 4, 4, 4};
-        fieldRevealed = new boolean[16];
-        finalSolved   = false;
+    private void startMultiplayerRound(int round) {
+        currentRound = round;
+        String roundKey = "round" + round;
+        boolean iStart = (round == 1) ? isPlayer1 : !isPlayer1;
 
-        tvRound.setText("Runda " + round + "/2");
-        updateScoreBar();
-        resetGrid();
-        updateGuessButtonStates();
-
-        if (isMyTurn) {
-            enableInput(true);
-            startTimer(ROUND_SECS);
+        if (iStart) {
+            repo.getRandomAssociation(assoc -> {
+                association = assoc;
+                Map<String, Object> data = new HashMap<>();
+                data.put("setId", assoc.getId());
+                data.put("turn", myId);
+                data.put("phase", "playing");
+                matchRef.child(roundKey).setValue(data);
+                listenToRound(roundKey);
+            }, e -> showError());
         } else {
-            enableInput(false);
-            simulateOpponentRound();
+            listenToRound(roundKey);
         }
+    }
+
+    private void listenToRound(String roundKey) {
+        if (roundListener != null) matchRef.child(roundKey).removeEventListener(roundListener);
+        roundListener = new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot snapshot) {
+                if (!snapshot.exists()) return;
+
+                String setId = snapshot.child("setId").getValue(String.class);
+                if (setId == null) return;
+
+                if (association == null || !association.getId().equals(setId)) {
+                    repo.getAssociationById(setId, assoc -> {
+                        association = assoc;
+                        setupRoundUI(currentRound);
+                        updateStateFromSnapshot(snapshot);
+                    }, e -> showError());
+                } else {
+                    updateStateFromSnapshot(snapshot);
+                }
+            }
+            @Override
+            public void onCancelled(@NonNull DatabaseError error) {}
+        };
+        matchRef.child(roundKey).addValueEventListener(roundListener);
+    }
+
+    private void updateStateFromSnapshot(DataSnapshot snap) {
+        currentTurnId = snap.child("turn").getValue(String.class);
+        boolean wasMyTurn = isMyTurn;
+        isMyTurn = Objects.equals(myId, currentTurnId);
+        
+        if (isMyTurn && !wasMyTurn) {
+            hasOpenedInTurn = false;
+        }
+
+        // Revealed fields
+        for (int i = 0; i < 16; i++) {
+            boolean revealed = snap.child("revealed").child(String.valueOf(i)).exists();
+            if (revealed && !fieldRevealed[i]) {
+                fieldRevealed[i] = true;
+                int c = i / 4, f = i % 4;
+                tvFields[c][f].setText(getWord(c, f));
+                tvFields[c][f].setBackgroundColor(getColor(R.color.primary_green_dark));
+            }
+        }
+
+        // Solved columns
+        for (int i = 0; i < 4; i++) {
+            DataSnapshot colSnap = snap.child("solvedCols").child(String.valueOf(i));
+            if (colSnap.exists() && !colSolved[i]) {
+                colSolved[i] = true;
+                tvColSolution[i].setText(getColSolution(i));
+                // Reveal all fields in solved column
+                for (int f = 0; f < 4; f++) {
+                    int idx = i * 4 + f;
+                    fieldRevealed[idx] = true;
+                    tvFields[i][f].setText(getWord(i, f));
+                }
+            }
+        }
+
+        // Final solution
+        DataSnapshot finalSnap = snap.child("finalSolved");
+        if (finalSnap.exists() && !finalSolved) {
+            finalSolved = true;
+            tvFinalSolution.setText(association.getFinalSolution());
+            revealAll();
+        }
+
+        // Scores
+        Integer myS = snap.child("scores").child(myId).getValue(Integer.class);
+        Integer oppS = snap.child("scores").child(opponentId).getValue(Integer.class);
+        int myRound = (myS != null) ? myS : 0;
+        int oppRound = (oppS != null) ? oppS : 0;
+        tvMyScore.setText(String.valueOf(myScoreTotal + myRound));
+        tvOpponentScore.setText(String.valueOf(oppScoreTotal + oppRound));
+
+        updateUIForTurn();
+
+        String phase = snap.child("phase").getValue(String.class);
+        if ("done".equals(phase)) {
+            endRound(myRound, oppRound);
+        }
+    }
+
+    private void setupRoundUI(int round) {
+        tvRound.setText("Runda " + round + "/2");
+        colSolved = new boolean[4];
+        fieldRevealed = new boolean[16];
+        finalSolved = false;
+        hasOpenedInTurn = false;
+        resetGrid();
+        startTimer(120);
     }
 
     private void resetGrid() {
         for (int c = 0; c < 4; c++) {
             for (int f = 0; f < 4; f++) {
-                TextView tv = tvFields[c][f];
-                tv.setText("?");
-                tv.setBackgroundColor(getColor(R.color.primary_green));
+                tvFields[c][f].setText("?");
+                tvFields[c][f].setBackgroundColor(getColor(R.color.primary_green));
                 final int col = c, field = f;
-                tv.setOnClickListener(v -> onFieldClick(col, field));
+                tvFields[c][f].setOnClickListener(v -> onFieldClick(col, field));
             }
-            // Eksplicitno sakrij solution redak
             tvColSolution[c].setText("?");
-            colSolved[c] = false;
         }
-        waitingForGuess = false;
-        cardFinalSolution.setVisibility(View.VISIBLE);
         tvFinalSolution.setText("KONAČNO REŠENJE");
         etAnswer.setText("");
         setGuessButtonsVisible(false);
     }
 
-    // ── Field click ───────────────────────────────────────────────────────────
+    private void updateUIForTurn() {
+        boolean enabled = isMyTurn && !finalSolved;
+        tvRound.setText("Runda " + currentRound + "/2 " + (isMyTurn ? "(Tvoj red)" : "(Čekaš...)"));
+        etAnswer.setEnabled(enabled);
+        btnPass.setVisibility(enabled && hasOpenedInTurn ? View.VISIBLE : View.GONE);
+        setGuessButtonsVisible(enabled && hasOpenedInTurn);
+        
+        for (int c = 0; c < 4; c++)
+            for (int f = 0; f < 4; f++)
+                tvFields[c][f].setClickable(enabled && !hasOpenedInTurn && !fieldRevealed[c*4+f]);
+    }
+
     private void onFieldClick(int col, int field) {
-        if (!isMyTurn) return;
-        if (waitingForGuess) {
-            Toast.makeText(this, "Prvo unesi odgovor!", Toast.LENGTH_SHORT).show();
-            return;
-        }
+        if (!isMyTurn || finalSolved || hasOpenedInTurn) return;
         int idx = col * 4 + field;
         if (fieldRevealed[idx]) return;
 
-        fieldRevealed[idx] = true;
-        hiddenFields[col]--;
-        tvFields[col][field].setText(getWord(col, field));
-        tvFields[col][field].setBackgroundColor(getColor(R.color.primary_green_dark));
-
-        waitingForGuess = true;
-        setGuessButtonsVisible(true);
-        updateGuessButtonStates();
-        etAnswer.setText("");
-        etAnswer.requestFocus();
-    }
-
-    // ── Guess target selection ─────────────────────────────────────────────────
-    private void selectGuessTarget(int target) {
-        // target: 0-3 = kolona, 4 = final
-        if (target < 4 && colSolved[target]) {
-            Toast.makeText(this, "Ta kolona je već pogođena.", Toast.LENGTH_SHORT).show();
-            return;
-        }
-        if (target == 4 && finalSolved) {
-            Toast.makeText(this, "Konačno rešenje je već pogođeno.", Toast.LENGTH_SHORT).show();
-            return;
-        }
-        activeGuessTarget = target;
-        updateGuessButtonStates();
-
-        // Postavi hint u polje
-        if (target < 4) {
-            etAnswer.setHint("Rešenje kolone " + (target + 1));
+        hasOpenedInTurn = true;
+        if (matchRef != null) {
+            matchRef.child("round" + currentRound).child("revealed").child(String.valueOf(idx)).setValue(true);
         } else {
-            etAnswer.setHint("Konačno rešenje");
+            fieldRevealed[idx] = true;
+            tvFields[col][field].setText(getWord(col, field));
+            tvFields[col][field].setBackgroundColor(getColor(R.color.primary_green_dark));
+            updateUIForTurn();
         }
-        etAnswer.setText("");
+    }
+
+    private void selectGuessTarget(int target) {
+        if (target < 4 && colSolved[target]) return;
+        activeGuessTarget = target;
+        etAnswer.setHint(target < 4 ? "Rešenje kolone " + (char)('A'+target) : "Konačno rešenje");
         etAnswer.requestFocus();
     }
 
-    private void updateGuessButtonStates() {
-        MaterialButton[] colBtns = {btnGuessCol1, btnGuessCol2, btnGuessCol3, btnGuessCol4};
-        for (int c = 0; c < 4; c++) {
-            colBtns[c].setAlpha(colSolved[c] ? 0.4f : 1.0f);
-            colBtns[c].setSelected(activeGuessTarget == c);
-        }
-        btnGuessFinal.setAlpha(finalSolved ? 0.4f : 1.0f);
-        btnGuessFinal.setSelected(activeGuessTarget == 4);
-    }
-
-    private void setGuessButtonsVisible(boolean visible) {
-        int vis = visible ? View.VISIBLE : View.GONE;
-        btnGuessCol1.setVisibility(vis);
-        btnGuessCol2.setVisibility(vis);
-        btnGuessCol3.setVisibility(vis);
-        btnGuessCol4.setVisibility(vis);
-        btnGuessFinal.setVisibility(vis);
-    }
-
-    // ── Submit answer ─────────────────────────────────────────────────────────
     private void submitAnswer() {
-        if (activeGuessTarget == -1) {
-            Toast.makeText(this, "Odaberi šta pogađaš.", Toast.LENGTH_SHORT).show();
-            return;
-        }
-        String answer = etAnswer.getText() != null ? etAnswer.getText().toString().trim() : "";
+        if (!isMyTurn || activeGuessTarget == -1) return;
+        String answer = etAnswer.getText().toString().trim();
         if (answer.isEmpty()) return;
 
         if (activeGuessTarget < 4) {
-            checkColGuess(activeGuessTarget, answer);
+            if (answer.equalsIgnoreCase(getColSolution(activeGuessTarget))) {
+                handleCorrectCol(activeGuessTarget);
+            } else {
+                switchTurn();
+            }
         } else {
-            checkFinalGuess(answer);
+            if (answer.equalsIgnoreCase(association.getFinalSolution())) {
+                handleCorrectFinal();
+            } else {
+                switchTurn();
+            }
         }
         etAnswer.setText("");
         activeGuessTarget = -1;
-        waitingForGuess = false;
-        setGuessButtonsVisible(false);
-        updateGuessButtonStates();
     }
 
-    private void checkColGuess(int col, String answer) {
-        if (answer.equalsIgnoreCase(getColSolution(col))) {
+    private void handleCorrectCol(int col) {
+        if (matchRef != null) {
+            String rk = "round" + currentRound;
+            matchRef.child(rk).child("solvedCols").child(String.valueOf(col)).setValue(myId);
+            // Calculate points
+            int hidden = 0;
+            for (int f = 0; f < 4; f++) if (!fieldRevealed[col*4+f]) hidden++;
+            int pts = AssociationLogic.colScore(hidden);
+            matchRef.child(rk).child("scores").child(myId).get().addOnSuccessListener(ds -> {
+                int current = ds.exists() ? ds.getValue(Integer.class) : 0;
+                matchRef.child(rk).child("scores").child(myId).setValue(current + pts);
+            });
+        } else {
             colSolved[col] = true;
             tvColSolution[col].setText(getColSolution(col));
-            int pts = AssociationLogic.colScore(hiddenFields[col]);
-            myScore += pts;
-            updateScoreBar();
-            updateGuessButtonStates();
-            Toast.makeText(this, "Tačno! +" + pts + " bodova", Toast.LENGTH_SHORT).show();
-        } else {
-            Toast.makeText(this, "Netačno.", Toast.LENGTH_SHORT).show();
+            // In solo, keep turn if correct
         }
     }
 
-    private void checkFinalGuess(String answer) {
-        if (answer.equalsIgnoreCase(association.getFinalSolution())) {
+    private void handleCorrectFinal() {
+        if (matchRef != null) {
+            String rk = "round" + currentRound;
+            matchRef.child(rk).child("finalSolved").setValue(myId);
+            // Calculate total points for round
+            int[] hiddenPerCol = new int[4];
+            for (int c = 0; c < 4; c++) {
+                for (int f = 0; f < 4; f++) if (!fieldRevealed[c*4+f]) hiddenPerCol[c]++;
+            }
+            int pts = AssociationLogic.finalScore(colSolved, hiddenPerCol);
+            matchRef.child(rk).child("scores").child(myId).get().addOnSuccessListener(ds -> {
+                int current = ds.exists() ? ds.getValue(Integer.class) : 0;
+                matchRef.child(rk).child("scores").child(myId).setValue(current + pts);
+                matchRef.child(rk).child("phase").setValue("done");
+            });
+        } else {
             finalSolved = true;
-            int pts = AssociationLogic.finalScore(colSolved, hiddenFields);
-            myScore += pts;
-            updateScoreBar();
+            tvFinalSolution.setText(association.getFinalSolution());
             revealAll();
-            Toast.makeText(this, "Tačno! +" + pts + " bodova", Toast.LENGTH_SHORT).show();
-            endRoundForPlayer();
+            endRound(0, 0); 
+        }
+    }
+
+    private void switchTurn() {
+        hasOpenedInTurn = false;
+        if (matchRef != null) {
+            matchRef.child("round" + currentRound).child("turn").setValue(opponentId);
         } else {
-            Toast.makeText(this, "Netačno.", Toast.LENGTH_SHORT).show();
+            // Solo: just reset opening flag or end?
+            isMyTurn = true; 
+            updateUIForTurn();
         }
     }
 
-    // ── Timer ─────────────────────────────────────────────────────────────────
-    private void startTimer(int seconds) {
-        timeLeft = seconds;
-        tvTimer.setText(String.valueOf(timeLeft));
+    private void endRound(int myRoundPts, int oppRoundPts) {
         if (timer != null) timer.cancel();
-        timer = new CountDownTimer(seconds * 1000L, 1000) {
-            @Override public void onTick(long ms) {
-                timeLeft = (int)(ms / 1000);
-                tvTimer.setText(String.valueOf(timeLeft));
-            }
-            @Override public void onFinish() {
-                tvTimer.setText("0");
-                onRoundTimeUp();
-            }
-        }.start();
-    }
+        if (roundListener != null) matchRef.child("round" + currentRound).removeEventListener(roundListener);
+        roundListener = null;
 
-    private void onRoundTimeUp() {
-        if (isMyTurn) {
-            revealAll();
-            endRoundForPlayer();
-        }
-    }
-
-    private void endRoundForPlayer() {
-        if (timer != null) timer.cancel();
-        enableInput(false);
-        setGuessButtonsVisible(false);
-        waitingForGuess = false;
-        revealAll();
+        myScoreTotal += myRoundPts;
+        oppScoreTotal += oppRoundPts;
 
         if (currentRound == 1) {
-            tvRound.postDelayed(() -> {
-                // Tek nakon delay-a ucitaj novu asocijaciju
-                repo.getRandomAssociation(
-                        assoc -> {
-                            association = assoc;
-                            // Sada kada imamo novu asocijaciju, resetuj i kreni rundu 2
-                            currentRound = 2;
-                            isMyTurn = true; // direktno igrac igra, bez simulate
-                            activeGuessTarget = -1;
-                            colSolved     = new boolean[4];
-                            hiddenFields  = new int[]{4, 4, 4, 4};
-                            fieldRevealed = new boolean[16];
-                            finalSolved   = false;
-                            tvRound.setText("Runda 2/2");
-                            updateScoreBar();
-                            resetGrid();
-                            enableInput(true);
-                            startTimer(ROUND_SECS);
-                        },
-                        e -> Toast.makeText(this, "Greška pri učitavanju asocijacije.", Toast.LENGTH_SHORT).show()
-                );
-            }, 1500);
+            new Handler().postDelayed(() -> startMultiplayerRound(2), 2000);
         } else {
+            statsRepo.saveAsocijacijeResult(finalSolved, myRoundPts, new StatsRepository.Callback<Void>() {
+                @Override public void onSuccess(Void r) {}
+                @Override public void onError(Exception e) {}
+            });
             showFinalScore();
         }
     }
 
-    // ── Opponent simulation ───────────────────────────────────────────────────
-    private void simulateOpponentRound() {
-        // Izracunaj bodove protivnika u pozadini, bez ikakvih UI promena na gridu
-        int oppPts = 0;
-        java.util.Random rnd = new java.util.Random();
-
-        for (int c = 0; c < 4; c++) {
-            if (rnd.nextBoolean()) {
-                int hidden = rnd.nextInt(4);
-                oppPts += AssociationLogic.colScore(hidden);
+    private void startTimer(int seconds) {
+        if (timer != null) timer.cancel();
+        timer = new CountDownTimer(seconds * 1000L, 1000) {
+            @Override public void onTick(long ms) { tvTimer.setText(String.valueOf(ms / 1000)); }
+            @Override public void onFinish() {
+                tvTimer.setText("0");
+                if (isMyTurn && matchRef != null) {
+                    matchRef.child("round" + currentRound).child("phase").setValue("done");
+                } else if (isGuest || matchId == null) {
+                    endRound(0, 0);
+                }
             }
-        }
-        final int finalOppPts = oppPts;
-        tvTimer.setText("--");
-
-        tvRound.postDelayed(() -> {
-            opponentScore += finalOppPts;
-            updateScoreBar();
-            Toast.makeText(this, "Protivnik odigrao. Sada ti ideš!", Toast.LENGTH_SHORT).show();
-            isMyTurn = true;
-            enableInput(true);
-            startTimer(ROUND_SECS);
-        }, 2000);
-    }
-
-    // ── Helpers ───────────────────────────────────────────────────────────────
-    private String getWord(int col, int field) {
-        List<String> list;
-        switch (col) {
-            case 0: list = association.getCol1(); break;
-            case 1: list = association.getCol2(); break;
-            case 2: list = association.getCol3(); break;
-            default: list = association.getCol4(); break;
-        }
-        return (list != null && field < list.size()) ? list.get(field) : "?";
-    }
-
-    private String getColSolution(int col) {
-        switch (col) {
-            case 0: return association.getCol1Solution();
-            case 1: return association.getCol2Solution();
-            case 2: return association.getCol3Solution();
-            default: return association.getCol4Solution();
-        }
+        }.start();
     }
 
     private void revealAll() {
         for (int c = 0; c < 4; c++) {
             tvColSolution[c].setText(getColSolution(c));
-            for (int f = 0; f < 4; f++) {
-                tvFields[c][f].setText(getWord(c, f));
-                tvFields[c][f].setOnClickListener(null);
-            }
+            for (int f = 0; f < 4; f++) tvFields[c][f].setText(getWord(c, f));
         }
         tvFinalSolution.setText(association.getFinalSolution());
     }
 
-    private void enableInput(boolean enabled) {
-        etAnswer.setEnabled(enabled);
-        for (int c = 0; c < 4; c++)
-            for (int f = 0; f < 4; f++)
-                tvFields[c][f].setClickable(enabled);
+    private String getWord(int col, int field) {
+        List<String> list = (col==0)?association.getCol1():(col==1)?association.getCol2():(col==2)?association.getCol3():association.getCol4();
+        return (list != null && field < list.size()) ? list.get(field) : "";
     }
 
-    private void updateScoreBar() {
-        tvMyScore.setText(String.valueOf(myScore));
-        tvOpponentScore.setText(String.valueOf(opponentScore));
+    private String getColSolution(int col) {
+        return (col==0)?association.getCol1Solution():(col==1)?association.getCol2Solution():(col==2)?association.getCol3Solution():association.getCol4Solution();
+    }
+
+    private void setGuessButtonsVisible(boolean visible) {
+        int v = visible ? View.VISIBLE : View.GONE;
+        btnGuessCol1.setVisibility(v); btnGuessCol2.setVisibility(v); btnGuessCol3.setVisibility(v); btnGuessCol4.setVisibility(v); btnGuessFinal.setVisibility(v);
     }
 
     private void showFinalScore() {
-        revealAll();
-        new AlertDialog.Builder(this)
-                .setTitle("Asocijacije završene")
-                .setMessage("Tvoji bodovi: " + myScore + "\nProtivnik: " + opponentScore)
-                .setCancelable(false)
-                .setPositiveButton("Dalje", (d, w) -> goNext())
-                .show();
+        new AlertDialog.Builder(this).setTitle("Kraj").setMessage("Bodovi: " + (myScoreTotal)).setPositiveButton("Dalje", (d, w) -> goNext()).show();
     }
 
     private void goNext() {
-        if (timer != null) timer.cancel();
-
-        // Uzmi skore iz prethdnog
-        int prevMy  = getIntent().getIntExtra("totalMyScore", 0);
-        int prevOpp = getIntent().getIntExtra("totalOpponentScore", 0);
-
         Intent intent = new Intent(this, SkockoActivity.class);
-        intent.putExtra("isGuest",            getIntent().getBooleanExtra("isGuest", false));
-        intent.putExtra("matchId",            getIntent().getStringExtra("matchId"));
-        intent.putExtra("myId",               getIntent().getStringExtra("myId"));
-        intent.putExtra("opponentId",         getIntent().getStringExtra("opponentId"));
-        intent.putExtra("isPlayer1",          getIntent().getBooleanExtra("isPlayer1", true));
-        intent.putExtra("totalMyScore",       prevMy + myScore);
-        intent.putExtra("totalOpponentScore", prevOpp + opponentScore);
+        intent.putExtra("isGuest", isGuest);
+        intent.putExtra("matchId", matchId);
+        intent.putExtra("myId", myId);
+        intent.putExtra("opponentId", opponentId);
+        intent.putExtra("isPlayer1", isPlayer1);
+        intent.putExtra("totalMyScore", myScoreTotal);
+        intent.putExtra("totalOpponentScore", oppScoreTotal);
         startActivity(intent);
         finish();
     }
-    private void confirmLeave() {
-        new AlertDialog.Builder(this)
-                .setTitle("Napusti igru?")
-                .setMessage("Izgubićeš partiju. Nastavi?")
-                .setPositiveButton("Da", (d, w) -> leaveGame())
-                .setNegativeButton("Ne", null)
-                .show();
+
+    private void forfeit() {
+        if (matchRef != null) matchRef.getParent().child("status").setValue("forfeit_" + myId);
+        finish();
     }
 
-    private void leaveGame() {
-        if (timer != null) timer.cancel();
-        boolean isGuest = getIntent().getBooleanExtra("isGuest", false);
-        Intent intent = isGuest
-                ? new Intent(this, com.example.slagalica.ui.main.GuestActivity.class)
-                : new Intent(this, com.example.slagalica.MainActivity.class);
-        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
-        startActivity(intent);
+    private void showError() {
+        Toast.makeText(this, "Greška!", Toast.LENGTH_SHORT).show();
         finish();
     }
 
@@ -470,5 +500,6 @@ public class AsocijacijeActivity extends AppCompatActivity {
     protected void onDestroy() {
         super.onDestroy();
         if (timer != null) timer.cancel();
+        if (roundListener != null && matchRef != null) matchRef.child("round" + currentRound).removeEventListener(roundListener);
     }
 }

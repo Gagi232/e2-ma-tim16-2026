@@ -2,6 +2,7 @@ package com.example.slagalica.ui.friends;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.os.CountDownTimer;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.view.LayoutInflater;
@@ -25,7 +26,10 @@ import com.example.slagalica.ui.games.KoZnaZnaActivity;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.ValueEventListener;
 import com.google.firebase.firestore.FirebaseFirestore;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -39,6 +43,9 @@ public class FriendsFragment extends Fragment {
     private final UserRepository userRepo = new UserRepository();
     private final FriendsRepository friendsRepo = new FriendsRepository();
     private String myUid;
+    private AlertDialog waitingDialog;
+    private ValueEventListener matchListener;
+    private String currentMatchId;
 
     @Nullable
     @Override
@@ -56,7 +63,6 @@ public class FriendsFragment extends Fragment {
                 Toast.makeText(getActivity(), "QR skeniranje — dolazi uskoro!", Toast.LENGTH_SHORT).show()
         );
 
-        // Pretraga
         etSearch.addTextChangedListener(new TextWatcher() {
             @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
             @Override public void onTextChanged(CharSequence s, int start, int before, int count) {
@@ -84,32 +90,7 @@ public class FriendsFragment extends Fragment {
                     showSearchResults(results);
                 });
     }
-    private void waitForAcceptance(String matchId, String opponentId) {
-        FirebaseDatabase.getInstance().getReference("activeMatches")
-                .child(matchId).child("info").child("status")
-                .addValueEventListener(new com.google.firebase.database.ValueEventListener() {
-                    @Override
-                    public void onDataChange(com.google.firebase.database.DataSnapshot snap) {
-                        String status = snap.getValue(String.class);
-                        if ("accepted".equals(status)) {
-                            Intent intent = new Intent(getActivity(), KoZnaZnaActivity.class);
-                            intent.putExtra("isGuest", false);
-                            intent.putExtra("matchId", matchId);
-                            intent.putExtra("myId", myUid);
-                            intent.putExtra("opponentId", opponentId);
-                            intent.putExtra("isPlayer1", true);
-                            startActivity(intent);
-                        }
-                    }
-                    @Override public void onCancelled(com.google.firebase.database.DatabaseError e) {}
-                });
-    }
 
-    private String getMyUsername() {
-        // jednostavno — koristi email prefix ili "Igrač"
-        String email = FirebaseAuth.getInstance().getCurrentUser().getEmail();
-        return email != null ? email.split("@")[0] : "Igrač";
-    }
     private void showSearchResults(List<User> users) {
         if (users.isEmpty()) {
             Toast.makeText(getActivity(), "Nema rezultata", Toast.LENGTH_SHORT).show();
@@ -137,16 +118,12 @@ public class FriendsFragment extends Fragment {
         friendsRepo.addFriend(myUid, user.getId(), new UserRepository.Callback<Void>() {
             @Override
             public void onSuccess(Void r) {
-                Toast.makeText(getActivity(),
-                        user.getUsername() + " dodat kao prijatelj!",
-                        Toast.LENGTH_SHORT).show();
+                Toast.makeText(getActivity(), user.getUsername() + " dodat kao prijatelj!", Toast.LENGTH_SHORT).show();
                 loadFriends();
             }
             @Override
             public void onError(Exception e) {
-                Toast.makeText(getActivity(),
-                        "Greška: " + e.getMessage(),
-                        Toast.LENGTH_SHORT).show();
+                Toast.makeText(getActivity(), "Greška: " + e.getMessage(), Toast.LENGTH_SHORT).show();
             }
         });
     }
@@ -164,55 +141,142 @@ public class FriendsFragment extends Fragment {
                     llFriendsList.addView(tvEmpty);
                     return;
                 }
-                for (User friend : friends) {
-                    addFriendCard(friend);
-                }
+                for (User friend : friends) addFriendCard(friend);
             });
         }, e -> Toast.makeText(getActivity(), "Greška pri učitavanju", Toast.LENGTH_SHORT).show());
     }
 
     private void addFriendCard(User friend) {
-        View card = LayoutInflater.from(getActivity())
-                .inflate(R.layout.item_friend, llFriendsList, false);
+        View card = LayoutInflater.from(getActivity()).inflate(R.layout.item_friend, llFriendsList, false);
 
-        TextView tvName   = card.findViewById(R.id.tvFriendName);
-        TextView tvLeague = card.findViewById(R.id.tvFriendLeague);
-        TextView tvStatus = card.findViewById(R.id.tvFriendStatus);
+        ((TextView) card.findViewById(R.id.tvFriendName)).setText(friend.getUsername());
+        ((TextView) card.findViewById(R.id.tvFriendLeague)).setText("🏆 Liga " + friend.getLeague() + " · " + friend.getStars() + " ⭐");
+        ((TextView) card.findViewById(R.id.tvFriendStatus)).setText(friend.isOnline() ? "🟢 Online" : "🔴 Offline");
+
         MaterialButton btnPlay = card.findViewById(R.id.btnPlayFriend);
-
-        tvName.setText(friend.getUsername());
-        tvLeague.setText("🏆 Liga " + friend.getLeague() + " · " + friend.getStars() + " ⭐");
-        tvStatus.setText(friend.isOnline() ? "🟢 Online" : "🔴 Offline");
-
         btnPlay.setEnabled(friend.isOnline());
-        btnPlay.setOnClickListener(v -> {
-            String matchId = FirebaseDatabase.getInstance().getReference("activeMatches").push().getKey();
-
-            // Kreiraj match dokument
-            Map<String, Object> matchData = new HashMap<>();
-            matchData.put("player1", myUid);
-            matchData.put("player2", friend.getId());
-            matchData.put("status", "pending");
-            FirebaseDatabase.getInstance().getReference("activeMatches")
-                    .child(matchId).child("info").setValue(matchData);
-
-            // Pošalji notifikaciju pozivu
-            AppNotification notif = new AppNotification();
-            notif.setUserId(friend.getId());
-            notif.setType(AppNotificationManager.TYPE_GAME_INVITE);
-            notif.setMessage(getMyUsername() + " te poziva na partiju!");
-            notif.setFromUserId(myUid);
-            notif.setMatchId(matchId);
-            notif.setRead(false);
-            notif.setCreatedAt(System.currentTimeMillis());
-
-            new NotificationRepository().save(notif, id -> {
-                Toast.makeText(getActivity(), "Poziv poslat! Čekamo prihvatanje...", Toast.LENGTH_SHORT).show();
-                // Pozivaoc čeka u KoZnaZna kao Player1
-                waitForAcceptance(matchId, friend.getId());
-            }, e -> Toast.makeText(getActivity(), "Greška pri slanju poziva", Toast.LENGTH_SHORT).show());
-        });
+        btnPlay.setOnClickListener(v -> startMatchInvite(friend));
 
         llFriendsList.addView(card);
+    }
+
+    private void startMatchInvite(User friend) {
+        String matchId = FirebaseDatabase.getInstance().getReference("activeMatches").push().getKey();
+        if (matchId == null) return;
+        currentMatchId = matchId;
+
+        Map<String, Object> matchData = new HashMap<>();
+        matchData.put("player1", myUid);
+        matchData.put("player2", friend.getId());
+        matchData.put("status", "pending");
+
+        FirebaseDatabase.getInstance().getReference("activeMatches")
+                .child(matchId).child("info").setValue(matchData)
+                .addOnSuccessListener(v -> {
+                    // Tek SADA, kad je info sigurno na serveru, nastavljamo dalje
+                    sendInviteNotification(friend, matchId);
+                })
+                .addOnFailureListener(e -> {
+                    Toast.makeText(getActivity(), "Greška pri kreiranju partije: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                });
+    }
+
+    private void sendInviteNotification(User friend, String matchId) {
+        userRepo.getCurrentUser(new UserRepository.Callback<User>() {
+            @Override
+            public void onSuccess(User me) {
+                AppNotification notif = new AppNotification();
+                notif.setUserId(friend.getId());
+                notif.setType(AppNotificationManager.TYPE_GAME_INVITE);
+                notif.setMessage(me.getUsername() + " te poziva na partiju!");
+                notif.setFromUserId(myUid);
+                notif.setFromUsername(me.getUsername());
+                notif.setMatchId(matchId);
+                notif.setRead(false);
+                notif.setCreatedAt(System.currentTimeMillis());
+
+                new NotificationRepository().save(notif,
+                        id -> showWaitingDialog(friend, matchId),
+                        e -> Toast.makeText(getActivity(), "Greška pri slanju", Toast.LENGTH_SHORT).show());
+            }
+            @Override public void onError(Exception e) {}
+        });
+    }
+
+    private void showWaitingDialog(User friend, String matchId) {
+        if (getActivity() == null) return;
+
+        waitingDialog = new AlertDialog.Builder(getActivity())
+                .setTitle("Poziv poslat")
+                .setMessage("Čekamo da " + friend.getUsername() + " prihvati... (10s)")
+                .setNegativeButton("Otkaži", (d, w) -> cancelInvite(matchId))
+                .setCancelable(false)
+                .show();
+
+        // 10s Timer
+        new CountDownTimer(10000, 1000) {
+            @Override public void onTick(long ms) {
+                if (waitingDialog != null && waitingDialog.isShowing()) {
+                    waitingDialog.setMessage("Čekamo da " + friend.getUsername() + " prihvati... (" + (ms/1000) + "s)");
+                }
+            }
+            @Override public void onFinish() {
+                if (waitingDialog != null && waitingDialog.isShowing()) {
+                    cancelInvite(matchId);
+                    Toast.makeText(getActivity(), "Vreme za poziv je isteklo.", Toast.LENGTH_SHORT).show();
+                }
+            }
+        }.start();
+
+        listenForAcceptance(matchId, friend.getId());
+    }
+
+    private void listenForAcceptance(String matchId, String opponentId) {
+        matchListener = new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot snap) {
+                String status = snap.getValue(String.class);
+                if ("accepted".equals(status)) {
+                    cleanupMatchListener();
+                    if (waitingDialog != null) waitingDialog.dismiss();
+                    
+                    Intent intent = new Intent(getActivity(), KoZnaZnaActivity.class);
+                    intent.putExtra("isGuest", false);
+                    intent.putExtra("matchId", matchId);
+                    intent.putExtra("myId", myUid);
+                    intent.putExtra("opponentId", opponentId);
+                    intent.putExtra("isPlayer1", true);
+                    startActivity(intent);
+                } else if ("declined".equals(status)) {
+                    cleanupMatchListener();
+                    if (waitingDialog != null) waitingDialog.dismiss();
+                    Toast.makeText(getActivity(), "Protivnik je odbio poziv.", Toast.LENGTH_SHORT).show();
+                }
+            }
+            @Override public void onCancelled(@NonNull DatabaseError e) {}
+        };
+        FirebaseDatabase.getInstance().getReference("activeMatches")
+                .child(matchId).child("info").child("status").addValueEventListener(matchListener);
+    }
+
+    private void cancelInvite(String matchId) {
+        cleanupMatchListener();
+        FirebaseDatabase.getInstance().getReference("activeMatches")
+                .child(matchId).child("info").child("status").setValue("cancelled");
+        if (waitingDialog != null) waitingDialog.dismiss();
+    }
+
+    private void cleanupMatchListener() {
+        if (matchListener != null && currentMatchId != null) {
+            FirebaseDatabase.getInstance().getReference("activeMatches")
+                    .child(currentMatchId).child("info").child("status").removeEventListener(matchListener);
+        }
+        matchListener = null;
+    }
+
+    @Override
+    public void onDestroyView() {
+        super.onDestroyView();
+        cleanupMatchListener();
     }
 }

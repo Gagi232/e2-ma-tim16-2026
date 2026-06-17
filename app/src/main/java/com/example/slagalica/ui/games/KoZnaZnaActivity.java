@@ -12,18 +12,17 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 
-import com.example.slagalica.MainActivity;
 import com.example.slagalica.R;
 import com.example.slagalica.data.model.KoZnaZnaQuestion;
 import com.example.slagalica.data.repository.GameRepository;
 import com.example.slagalica.data.repository.StatsRepository;
 import com.example.slagalica.logic.KoZnaZnaLogic;
-import com.example.slagalica.ui.main.GuestActivity;
 import com.google.android.material.button.MaterialButton;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.ServerValue;
 import com.google.firebase.database.ValueEventListener;
 
 import java.util.ArrayList;
@@ -32,6 +31,10 @@ import java.util.List;
 import java.util.Map;
 
 public class KoZnaZnaActivity extends AppCompatActivity {
+
+    private static final int COLOR_CORRECT = 0xFF4CAF50; // zelena
+    private static final int COLOR_WRONG   = 0xFFF44336; // crvena
+    private static final int COLOR_DEFAULT = 0xFF388E3C; // tamno zelena (default)
 
     private TextView tvQuestion, tvTimer, tvMyScore, tvOpponentScore, tvQuestionNumber;
     private MaterialButton btnAnswer1, btnAnswer2, btnAnswer3, btnAnswer4;
@@ -51,6 +54,14 @@ public class KoZnaZnaActivity extends AppCompatActivity {
     private int correctCount = 0, wrongCount = 0;
     private DatabaseReference matchRef;
 
+    // Da rezultat pitanja primenimo TAČNO JEDNOM (bez obzira ko prvi/drugi odgovori,
+    // i bez obzira na redosled kojim Firebase okine listenere)
+    private boolean[] resultApplied;
+
+    // Da pokupimo i uklonimo sve listenere kad se Activity uništi (sprečava leak)
+    private final List<DatabaseReference> activeRefs = new ArrayList<>();
+    private final List<ValueEventListener> activeListeners = new ArrayList<>();
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -66,6 +77,8 @@ public class KoZnaZnaActivity extends AppCompatActivity {
             var fbUser = com.google.firebase.auth.FirebaseAuth.getInstance().getCurrentUser();
             if (fbUser != null) myId = fbUser.getUid();
         }
+
+        resultApplied = new boolean[KoZnaZnaLogic.TOTAL_QUESTIONS];
 
         bindViews();
         findViewById(R.id.btnFinish).setVisibility(View.GONE);
@@ -163,7 +176,7 @@ public class KoZnaZnaActivity extends AppCompatActivity {
         updateScores();
         startTimer();
 
-        if (matchRef != null) listenForOpponentAnswer(index);
+        if (matchRef != null) listenForAnswers(index);
     }
 
     private void startTimer() {
@@ -172,7 +185,14 @@ public class KoZnaZnaActivity extends AppCompatActivity {
             @Override public void onTick(long ms) { tvTimer.setText(String.valueOf((ms / 1000) + 1)); }
             @Override public void onFinish() {
                 tvTimer.setText("0");
-                if (!answered) onTimeout();
+                if (!answered) {
+                    onTimeout();
+                }
+                if (matchRef != null) {
+                    // Multiplayer: uvek čekamo da PRAVI tajmer od 5s istekne na oba telefona
+                    // pre prelaska dalje, da oba klijenta ostanu sinhronizovana na istom pitanju.
+                    new Handler().postDelayed(() -> showQuestion(currentIndex + 1), 1200);
+                }
             }
         }.start();
     }
@@ -180,70 +200,173 @@ public class KoZnaZnaActivity extends AppCompatActivity {
     private void onAnswered(int selectedIndex) {
         if (answered) return;
         answered = true;
-        if (timer != null) timer.cancel();
 
-        long ts = System.currentTimeMillis();
-        boolean correct = (selectedIndex == questions.get(currentIndex).getCorrectIndex());
+        int correctIndex = questions.get(currentIndex).getCorrectIndex();
+        boolean correct = (selectedIndex == correctIndex);
         if (correct) correctCount++; else wrongCount++;
-        showFeedback(selectedIndex, questions.get(currentIndex).getCorrectIndex());
+
+        // Trenutna lična povratna informacija - ne čekamo protivnika za ovo
+        showSelfFeedback(selectedIndex, correctIndex);
 
         if (matchRef != null) {
-            writeAnswer(selectedIndex, correct, ts);
+            writeAnswer(currentIndex, selectedIndex, correct);
+            // NE prelazimo odmah na sledeće pitanje - sačekaćemo da istekne
+            // zajednički tajmer (vidi startTimer -> onFinish), da ne sečemo
+            // protivniku preostalo vreme za odgovor.
         } else {
-            myScore += logic.calcSoloScore(selectedIndex, questions.get(currentIndex).getCorrectIndex());
+            timer.cancel();
+            myScore += logic.calcSoloScore(selectedIndex, correctIndex);
             updateScores();
+            new Handler().postDelayed(() -> showQuestion(currentIndex + 1), 1500);
         }
-        new Handler().postDelayed(() -> showQuestion(currentIndex + 1), 1500);
     }
 
     private void onTimeout() {
         answered = true;
-        if (matchRef != null) writeAnswer(-1, false, -1L);
-        new Handler().postDelayed(() -> showQuestion(currentIndex + 1), 500);
+        if (matchRef != null) {
+            writeAnswer(currentIndex, -1, false);
+        }
+        // solo timeout: bez poena, prelazak dalje se već zakazuje u onFinish
     }
 
-    private void writeAnswer(int index, boolean correct, long ts) {
+    private void writeAnswer(int qIndex, int answerIndex, boolean correct) {
         Map<String, Object> data = new HashMap<>();
-        data.put("answerIndex", index); data.put("correct", correct); data.put("timestamp", ts);
-        matchRef.child("answers").child(myId).child(String.valueOf(currentIndex)).setValue(data);
+        data.put("answerIndex", answerIndex);
+        data.put("correct", correct);
+        // Vreme upisuje SAM SERVER, ne telefon - jer satovi na dva uređaja
+        // nikad nisu savršeno sinhronizovani, a baš ovo vreme odlučuje ko je "brži".
+        data.put("timestamp", ServerValue.TIMESTAMP);
+        matchRef.child("answers").child(myId).child(String.valueOf(qIndex)).setValue(data);
     }
 
-    private void listenForOpponentAnswer(int qIndex) {
-        matchRef.child("answers").child(opponentId).child(String.valueOf(qIndex))
-                .addValueEventListener(new ValueEventListener() {
-                    @Override
-                    public void onDataChange(@NonNull DataSnapshot oppSnapshot) {
-                        if (!oppSnapshot.exists()) return;
-                        matchRef.child("answers").child(myId).child(String.valueOf(qIndex))
-                                .addListenerForSingleValueEvent(new ValueEventListener() {
-                                    @Override
-                                    public void onDataChange(@NonNull DataSnapshot mySnapshot) {
-                                        if (!mySnapshot.exists()) return;
-                                        applyMultiplayerScore(mySnapshot, oppSnapshot);
-                                    }
-                                    @Override public void onCancelled(@NonNull DatabaseError error) {}
-                                });
+    // ── Real-time sinhronizacija rezultata ─────────────────────────────────
+
+    private void listenForAnswers(final int qIndex) {
+        DatabaseReference myAnsRef  = matchRef.child("answers").child(myId).child(String.valueOf(qIndex));
+        DatabaseReference oppAnsRef = matchRef.child("answers").child(opponentId).child(String.valueOf(qIndex));
+
+        // VAŽNO: slušamo OBE putanje (svoju i protivnikovu), ne samo protivnikovu.
+        // Time je svejedno ko prvi a ko drugi odgovori - obojica će dobiti update.
+        ValueEventListener trigger = new ValueEventListener() {
+            @Override public void onDataChange(@NonNull DataSnapshot ignored) {
+                tryApplyResult(qIndex, myAnsRef, oppAnsRef);
+            }
+            @Override public void onCancelled(@NonNull DatabaseError error) {}
+        };
+
+        myAnsRef.addValueEventListener(trigger);
+        oppAnsRef.addValueEventListener(trigger);
+
+        activeRefs.add(myAnsRef);  activeListeners.add(trigger);
+        activeRefs.add(oppAnsRef); activeListeners.add(trigger);
+    }
+
+    private void tryApplyResult(int qIndex, DatabaseReference myAnsRef, DatabaseReference oppAnsRef) {
+        if (resultApplied[qIndex]) return;
+
+        myAnsRef.addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override public void onDataChange(@NonNull DataSnapshot mySnap) {
+                if (!mySnap.exists()) return; // ja još nisam odgovorio/timeout-ovao
+
+                oppAnsRef.addListenerForSingleValueEvent(new ValueEventListener() {
+                    @Override public void onDataChange(@NonNull DataSnapshot oppSnap) {
+                        if (!oppSnap.exists()) return; // protivnik još nije
+
+                        // OBA odgovora postoje - sad konačno možemo da obračunamo poene
+                        onBothAnswersReady(qIndex, mySnap, oppSnap);
                     }
                     @Override public void onCancelled(@NonNull DatabaseError error) {}
                 });
+            }
+            @Override public void onCancelled(@NonNull DatabaseError error) {}
+        });
     }
 
-    private void applyMultiplayerScore(DataSnapshot mySnap, DataSnapshot oppSnap) {
-        Boolean myC = mySnap.child("correct").getValue(Boolean.class);
-        Boolean oppC = oppSnap.child("correct").getValue(Boolean.class);
-        Long myT = mySnap.child("timestamp").getValue(Long.class);
-        Long oppT = oppSnap.child("timestamp").getValue(Long.class);
-        Integer myI = mySnap.child("answerIndex").getValue(Integer.class);
-        Integer oppI = oppSnap.child("answerIndex").getValue(Integer.class);
+    private void onBothAnswersReady(int qIndex, DataSnapshot mySnap, DataSnapshot oppSnap) {
+        if (resultApplied[qIndex]) return; // dvostruka zaštita od duplog brojanja
+        resultApplied[qIndex] = true;
+
+        Boolean myCorrectObj  = mySnap.child("correct").getValue(Boolean.class);
+        Boolean oppCorrectObj = oppSnap.child("correct").getValue(Boolean.class);
+        Long myTsObj  = mySnap.child("timestamp").getValue(Long.class);
+        Long oppTsObj = oppSnap.child("timestamp").getValue(Long.class);
+        Integer myIdxObj  = mySnap.child("answerIndex").getValue(Integer.class);
+        Integer oppIdxObj = oppSnap.child("answerIndex").getValue(Integer.class);
+
+        int myIdx  = myIdxObj  != null ? myIdxObj  : -1;
+        int oppIdx = oppIdxObj != null ? oppIdxObj : -1;
 
         int[] pts = logic.calcMultiScore(
-                myI != null ? myI : -1, myC != null && myC, myT != null ? myT : Long.MAX_VALUE,
-                oppI != null ? oppI : -1, oppC != null && oppC, oppT != null ? oppT : Long.MAX_VALUE);
-        
+                myIdx,  myCorrectObj  != null && myCorrectObj,  myTsObj  != null ? myTsObj  : Long.MAX_VALUE,
+                oppIdx, oppCorrectObj != null && oppCorrectObj, oppTsObj != null ? oppTsObj : Long.MAX_VALUE);
+
         myScore += pts[0];
         opponentScore += pts[1];
         updateScores();
+
+        // Vizuelni prikaz ko je šta odgovorio ima smisla samo ako smo i dalje
+        // na tom istom pitanju (ako je kasno stiglo, poeni se svejedno računaju gore)
+        if (qIndex == currentIndex) {
+            int correctIndex = questions.get(qIndex).getCorrectIndex();
+            applyFinalVisuals(myIdx, oppIdx, correctIndex);
+        }
     }
+
+    // ── Vizuelni prikaz odgovora ────────────────────────────────────────────
+
+    /** Trenutna povratna informacija odmah pošto JA kliknem - bez čekanja protivnika. */
+    private void showSelfFeedback(int selected, int correctIndex) {
+        enableButtons(false);
+        getButton(correctIndex).setBackgroundTintList(ColorStateList.valueOf(COLOR_CORRECT));
+        if (selected != correctIndex && selected >= 0) {
+            getButton(selected).setBackgroundTintList(ColorStateList.valueOf(COLOR_WRONG));
+        }
+    }
+
+    /** Konačan prikaz pošto su OBA odgovora poznata - boje + labela ko je šta izabrao. */
+    private void applyFinalVisuals(int myIndex, int oppIndex, int correctIndex) {
+        enableButtons(false);
+        List<String> opts = questions.get(currentIndex).getOptions();
+
+        for (int i = 0; i < 4; i++) {
+            MaterialButton btn = getButton(i);
+            boolean isCorrect = (i == correctIndex);
+            boolean mine = (i == myIndex);
+            boolean opp  = (i == oppIndex);
+
+            int color = isCorrect ? COLOR_CORRECT : (mine || opp ? COLOR_WRONG : COLOR_DEFAULT);
+            btn.setBackgroundTintList(ColorStateList.valueOf(color));
+
+            StringBuilder text = new StringBuilder(opts.get(i));
+            if (mine && opp) text.append("\n👥 Ti i protivnik");
+            else if (mine)   text.append("\n🧍 Tvoj odgovor");
+            else if (opp)    text.append("\n👤 Protivnikov odgovor");
+            btn.setText(text.toString());
+        }
+    }
+
+    private void resetColors() {
+        btnAnswer1.setBackgroundTintList(ColorStateList.valueOf(COLOR_DEFAULT));
+        btnAnswer2.setBackgroundTintList(ColorStateList.valueOf(COLOR_DEFAULT));
+        btnAnswer3.setBackgroundTintList(ColorStateList.valueOf(COLOR_DEFAULT));
+        btnAnswer4.setBackgroundTintList(ColorStateList.valueOf(COLOR_DEFAULT));
+    }
+
+    private void enableButtons(boolean enabled) {
+        btnAnswer1.setEnabled(enabled); btnAnswer2.setEnabled(enabled);
+        btnAnswer3.setEnabled(enabled); btnAnswer4.setEnabled(enabled);
+    }
+
+    private MaterialButton getButton(int index) {
+        return index == 0 ? btnAnswer1 : index == 1 ? btnAnswer2 : index == 2 ? btnAnswer3 : btnAnswer4;
+    }
+
+    private void updateScores() {
+        tvMyScore.setText(String.valueOf(myScore));
+        tvOpponentScore.setText(String.valueOf(opponentScore));
+    }
+
+    // ── Kraj igre / izlaz ────────────────────────────────────────────────────
 
     private void endGame() {
         if (timer != null) timer.cancel();
@@ -266,36 +389,8 @@ public class KoZnaZnaActivity extends AppCompatActivity {
 
     private void forfeit() {
         if (timer != null) timer.cancel();
-        if (matchRef != null) matchRef.getParent().child("status").setValue("forfeit_" + myId);
+        if (matchRef != null) matchRef.getParent().child("info").child("status").setValue("forfeit_" + myId);
         finish();
-    }
-
-    private void showFeedback(int selected, int correct) {
-        enableButtons(false);
-        getButton(correct).setBackgroundTintList(ColorStateList.valueOf(0xFF4CAF50));
-        if (selected != correct && selected >= 0) getButton(selected).setBackgroundTintList(ColorStateList.valueOf(0xFFF44336));
-    }
-
-    private void resetColors() {
-        int green = 0xFF388E3C;
-        btnAnswer1.setBackgroundTintList(ColorStateList.valueOf(green));
-        btnAnswer2.setBackgroundTintList(ColorStateList.valueOf(green));
-        btnAnswer3.setBackgroundTintList(ColorStateList.valueOf(green));
-        btnAnswer4.setBackgroundTintList(ColorStateList.valueOf(green));
-    }
-
-    private void enableButtons(boolean enabled) {
-        btnAnswer1.setEnabled(enabled); btnAnswer2.setEnabled(enabled);
-        btnAnswer3.setEnabled(enabled); btnAnswer4.setEnabled(enabled);
-    }
-
-    private MaterialButton getButton(int index) {
-        return index==0?btnAnswer1:index==1?btnAnswer2:index==2?btnAnswer3:btnAnswer4;
-    }
-
-    private void updateScores() {
-        tvMyScore.setText(String.valueOf(myScore));
-        tvOpponentScore.setText(String.valueOf(opponentScore));
     }
 
     private void showError(String msg) {
@@ -307,5 +402,8 @@ public class KoZnaZnaActivity extends AppCompatActivity {
     protected void onDestroy() {
         super.onDestroy();
         if (timer != null) timer.cancel();
+        for (int i = 0; i < activeRefs.size(); i++) {
+            activeRefs.get(i).removeEventListener(activeListeners.get(i));
+        }
     }
 }

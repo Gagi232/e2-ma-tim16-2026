@@ -23,6 +23,17 @@ public class GameRepository {
 
     // Ko zna zna
 
+    public void getSkockoComboById(String id,
+                                   OnSuccess<com.example.slagalica.data.model.SkockoCombo> onSuccess, OnError onError) {
+        db.collection(SKOCKO).document(id).get()
+                .addOnSuccessListener(doc -> {
+                    if (!doc.exists()) { onError.run(new Exception("Nije pronadjeno")); return; }
+                    com.example.slagalica.data.model.SkockoCombo c = doc.toObject(com.example.slagalica.data.model.SkockoCombo.class);
+                    c.setId(doc.getId());
+                    onSuccess.run(c);
+                })
+                .addOnFailureListener(onError::run);
+    }
     public void getRandomKoZnaZnaQuestions(int count,
                                            OnSuccess<List<KoZnaZnaQuestion>> onSuccess, OnError onError) {
         db.collection(KZZ).get()

@@ -77,14 +77,19 @@ public class NotificationsFragment extends Fragment {
 
     private void acceptGameInvite(AppNotification item) {
         if (item.getMatchId() == null) return;
-        
+
         // Update Firebase Realtime Status
         FirebaseDatabase.getInstance().getReference("activeMatches")
                 .child(item.getMatchId()).child("info").child("status").setValue("accepted")
-                .addOnFailureListener(e -> Toast.makeText(getActivity(), "Greška pri prihvatanju: " + e.getMessage(), Toast.LENGTH_LONG).show());
+                .addOnFailureListener(e -> {
+                    if (isAdded() && getActivity() != null)
+                        Toast.makeText(getActivity(), "Greška pri prihvatanju: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                });
 
         // Mark notification as read
         repo.markAsRead(item.getId(), r -> {
+            if (!isAdded() || getActivity() == null) return;   // ⬅ FIX: fragment možda nije više attach-ovan
+
             Intent intent = new Intent(getActivity(), KoZnaZnaActivity.class);
             intent.putExtra("isGuest", false);
             intent.putExtra("matchId", item.getMatchId());
@@ -92,9 +97,11 @@ public class NotificationsFragment extends Fragment {
             intent.putExtra("opponentId", item.getFromUserId());
             intent.putExtra("isPlayer1", false); // Invited person is Player 2
             startActivity(intent);
-        }, e -> Toast.makeText(getActivity(), "Greška", Toast.LENGTH_SHORT).show());
+        }, e -> {
+            if (isAdded() && getActivity() != null)
+                Toast.makeText(getActivity(), "Greška", Toast.LENGTH_SHORT).show();
+        });
     }
-
     @Override
     public void onStart() {
         super.onStart();

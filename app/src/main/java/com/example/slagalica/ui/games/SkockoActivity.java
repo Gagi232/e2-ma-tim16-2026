@@ -59,10 +59,22 @@ public class SkockoActivity extends AppCompatActivity {
     private int myScoreTotal = 0;
     private int oppScoreTotal = 0;
 
+    // Bodovi u TRENUTNOJ rundi (čitaju se iz Firebase "scores" čvora svake runde
+    // i sabiraju u myScoreTotal/oppScoreTotal tek kad runda završi).
+    private int myRoundScore = 0;
+    private int oppRoundScore = 0;
+
     private List<String> currentGuess;
     private int attemptIndex = 0;
     private boolean isMyTurn = false;
     private boolean isOpponentChance = false;
+
+    // FIX: pratimo za koju rundu je UI (grid, dugmad...) već inicijalizovan —
+    // ne pogađamo to iz identiteta `combo` objekta. Igrač koji POKREĆE rundu već ima
+    // `combo` lokalno postavljen PRE nego što mu stigne echo iz baze, pa stara provera
+    // (combo == null || !combo.getId().equals(setId)) nikad nije bila tačna za njega
+    // i setupRoundUI() se nikad nije pozivao — grid je ostajao "zaglavljen" iz prošle runde.
+    private int uiSetupRound = -1;
 
     private CountDownTimer timer;
     private final GameRepository repo = new GameRepository();
@@ -86,6 +98,7 @@ public class SkockoActivity extends AppCompatActivity {
 
         bindViews();
         updateTopBar();
+        updateScoreUI();
 
         if (isGuest || matchId == null) {
             loadSolo();
@@ -93,6 +106,11 @@ public class SkockoActivity extends AppCompatActivity {
             matchRef = FirebaseDatabase.getInstance().getReference("activeMatches").child(matchId).child("skocko");
             startMultiplayerRound(1);
         }
+    }
+
+    private void updateScoreUI() {
+        tvMyScore.setText(String.valueOf(myScoreTotal));
+        tvOpponentScore.setText(String.valueOf(oppScoreTotal));
     }
 
     private void bindViews() {
@@ -103,6 +121,9 @@ public class SkockoActivity extends AppCompatActivity {
         btnFinish       = findViewById(R.id.btnFinish);
         btnLeave        = findViewById(R.id.btnLeave);
         btnDelete       = findViewById(R.id.btnDelete);
+
+        // FIX: dugme je u XML-u labelovano "Sledeća igra →" ali zapravo potvrđuje pokušaj
+        btnFinish.setText("Potvrdi");
 
         int[][] attemptFieldIds = {
                 { R.id.tvAttempt1Field1, R.id.tvAttempt1Field2, R.id.tvAttempt1Field3, R.id.tvAttempt1Field4 },
@@ -184,7 +205,12 @@ public class SkockoActivity extends AppCompatActivity {
                 data.put("phase", "playing");
                 // round 1: player1 plays, round 2: player2 plays
                 data.put("player", (round==1)?(isPlayer1?myId:opponentId):(isPlayer1?opponentId:myId));
-                matchRef.child(roundKey).setValue(data);
+                // FIX: briše stari sadržaj ovog round-a (attempts/results/scores iz prethodnih
+                // test-mečeva) pre upisa novog, isto kao kod asocijacija.
+                matchRef.child(roundKey).removeValue()
+                        .addOnCompleteListener(t ->
+                                matchRef.child(roundKey).setValue(data)
+                                        .addOnFailureListener(e -> showWriteError("roundInit", e)));
                 listenToRound(roundKey);
             }, e -> showError());
         } else {
@@ -201,10 +227,20 @@ public class SkockoActivity extends AppCompatActivity {
                 String setId = snapshot.child("setId").getValue(String.class);
                 if (setId == null) return;
 
+                // FIX: UI se resetuje tačno jednom po rundi (na osnovu broja runde),
+                // bez obzira da li `combo` već lokalno odgovara setId-u.
+                if (uiSetupRound != currentRound) {
+                    uiSetupRound = currentRound;
+                    setupRoundUI(currentRound);
+                }
+
                 if (combo == null || !combo.getId().equals(setId)) {
-                    repo.getRandomSkockoCombo(c -> { 
+                    // FIX: mora da povuče TAČNO istu kombinaciju po ID-u, ne novu nasumičnu —
+                    // u suprotnom igrači imaju različita rešenja.
+                    // NAPOMENA: proveri da li getSkockoComboById postoji u GameRepository,
+                    // ako ne — dodaj ga (ista šema kao getAssociationById, samo za skocko_combos).
+                    repo.getSkockoComboById(setId, c -> {
                         combo = c;
-                        setupRoundUI(currentRound);
                         updateStateFromSnapshot(snapshot);
                     }, e -> showError());
                 } else {
@@ -247,7 +283,7 @@ public class SkockoActivity extends AppCompatActivity {
         }
 
         // Sync opponent chance
-        if (isOpponentChance) {
+        if (isOpponentChance || snap.child("oppChanceGuess").exists()) {
             DataSnapshot ocSnap = snap.child("oppChanceGuess");
             if (ocSnap.exists()) {
                 List<String> guess = (List<String>) ocSnap.getValue();
@@ -258,6 +294,14 @@ public class SkockoActivity extends AppCompatActivity {
                 if (correct != null) setFeedbackCircles(llOppFeedback, correct?4:0, 0);
             }
         }
+
+        // FIX: bodovi runde se sad čitaju i prikazuju uživo (ranije se nikad nisu prikazivali)
+        Integer myS = snap.child("scores").child(myId).getValue(Integer.class);
+        Integer oppS = snap.child("scores").child(opponentId).getValue(Integer.class);
+        myRoundScore = (myS != null) ? myS : 0;
+        oppRoundScore = (oppS != null) ? oppS : 0;
+        tvMyScore.setText(String.valueOf(myScoreTotal + myRoundScore));
+        tvOpponentScore.setText(String.valueOf(oppScoreTotal + oppRoundScore));
 
         updateUIForTurn();
 
@@ -271,10 +315,15 @@ public class SkockoActivity extends AppCompatActivity {
         resetGrid();
         currentGuess = new ArrayList<>(Arrays.asList("", "", "", ""));
         attemptIndex = 0;
+        isOpponentChance = false;
+        myRoundScore = 0;
+        oppRoundScore = 0;
+        updateScoreUI();
     }
 
     private void updateUIForTurn() {
         boolean enabled = isMyTurn;
+        tvRound.setText("Runda " + currentRound + "/2 " + (isMyTurn ? "(Tvoj red)" : "(Čekaš...)"));
         btnFinish.setEnabled(enabled);
         btnDelete.setEnabled(enabled);
         setSymbolsEnabled(enabled);
@@ -306,60 +355,141 @@ public class SkockoActivity extends AppCompatActivity {
     }
 
     private void submitGuess() {
+        if (!isMyTurn) return;
         for (String s : currentGuess) if (s.isEmpty()) return;
 
+        if (matchRef != null) {
+            String rk = "round" + currentRound;
+            if (isOpponentChance) {
+                submitOpponentChance(rk, new ArrayList<>(currentGuess));
+            } else {
+                submitNormalAttempt(rk, new ArrayList<>(currentGuess));
+            }
+        } else {
+            submitSoloGuess();
+        }
+        currentGuess = new ArrayList<>(Arrays.asList("", "", "", ""));
+    }
+
+    /** Jedan od 6 pokušaja glavnog "pogađača" u rundi. */
+    private void submitNormalAttempt(String rk, List<String> guess) {
+        List<String> solution = combo.getCombination();
+        boolean correct = SkockoLogic.isCorrect(guess, solution);
+        int m = SkockoLogic.countMatches(guess, solution);
+        int w = SkockoLogic.countWrongPosition(guess, solution);
+        int thisAttempt = attemptIndex;
+
+        matchRef.child(rk).child("attempts").child(String.valueOf(thisAttempt)).setValue(guess)
+                .addOnFailureListener(e -> showWriteError("attempts", e));
+        Map<String, Integer> res = new HashMap<>();
+        res.put("matches", m); res.put("wrongPos", w);
+        matchRef.child(rk).child("results").child(String.valueOf(thisAttempt)).setValue(res)
+                .addOnFailureListener(e -> showWriteError("results", e));
+
+        if (correct) {
+            int pts = SkockoLogic.pointsForAttempt(thisAttempt + 1);
+            matchRef.child(rk).child("scores").child(myId).get().addOnSuccessListener(ds -> {
+                int curr = ds.exists() ? ds.getValue(Integer.class) : 0;
+                matchRef.child(rk).child("scores").child(myId).setValue(curr + pts)
+                        .addOnFailureListener(e -> showWriteError("scores", e));
+                matchRef.child(rk).child("phase").setValue("done")
+                        .addOnFailureListener(e -> showWriteError("phase=done", e));
+            });
+        } else if (thisAttempt >= 5) {
+            // 6 pokušaja iskorišćeno bez pogotka — protivnik dobija jedan pokušaj
+            matchRef.child(rk).child("phase").setValue("opponent_chance")
+                    .addOnFailureListener(e -> showWriteError("phase=oppChance", e));
+            matchRef.child(rk).child("player").setValue(opponentId)
+                    .addOnFailureListener(e -> showWriteError("player=opp", e));
+        }
+        // ako nije tačno i ima još pokušaja, ništa dodatno — attemptIndex se sam
+        // osvežava u updateStateFromSnapshot() na osnovu broja upisanih attempts.
+    }
+
+    /** Bonus pokušaj protivnika (jedan jedini), posle 6 promašenih pokušaja glavnog igrača. */
+    private void submitOpponentChance(String rk, List<String> guess) {
+        List<String> solution = combo.getCombination();
+        boolean correct = SkockoLogic.isCorrect(guess, solution);
+
+        matchRef.child(rk).child("oppChanceGuess").setValue(guess)
+                .addOnFailureListener(e -> showWriteError("oppChanceGuess", e));
+        matchRef.child(rk).child("oppChanceCorrect").setValue(correct)
+                .addOnFailureListener(e -> showWriteError("oppChanceCorrect", e));
+
+        if (correct) {
+            matchRef.child(rk).child("scores").child(myId).get().addOnSuccessListener(ds -> {
+                int current = ds.exists() ? ds.getValue(Integer.class) : 0;
+                matchRef.child(rk).child("scores").child(myId).setValue(current + SkockoLogic.PTS_OPPONENT)
+                        .addOnFailureListener(e -> showWriteError("scores", e));
+                matchRef.child(rk).child("phase").setValue("done")
+                        .addOnFailureListener(e -> showWriteError("phase=done", e));
+            });
+        } else {
+            matchRef.child(rk).child("phase").setValue("done")
+                    .addOnFailureListener(e -> showWriteError("phase=done", e));
+        }
+    }
+
+    /** Solo (gost) mod — bez Firebase-a, sve lokalno. */
+    private void submitSoloGuess() {
         List<String> solution = combo.getCombination();
         boolean correct = SkockoLogic.isCorrect(currentGuess, solution);
         int m = SkockoLogic.countMatches(currentGuess, solution);
         int w = SkockoLogic.countWrongPosition(currentGuess, solution);
 
-        if (matchRef != null) {
-            String rk = "round" + currentRound;
-            if (isOpponentChance) {
-                matchRef.child(rk).child("oppChanceGuess").setValue(currentGuess);
-                matchRef.child(rk).child("oppChanceCorrect").setValue(correct);
-                if (correct) {
-                    // Update score
-                    matchRef.child(rk).child("scores").child(myId).get().addOnSuccessListener(ds -> {
-                       int current = ds.exists() ? ds.getValue(Integer.class) : 0;
-                       matchRef.child(rk).child("scores").child(myId).setValue(current + 10);
-                    });
-                }
-                matchRef.child(rk).child("phase").setValue("done");
-            } else {
-                matchRef.child(rk).child("attempts").child(String.valueOf(attemptIndex)).setValue(currentGuess);
-                Map<String, Integer> res = new HashMap<>();
-                res.put("matches", m); res.put("wrongPos", w);
-                matchRef.child(rk).child("results").child(String.valueOf(attemptIndex)).setValue(res);
+        setFeedbackCircles(llAttemptFeedback[attemptIndex], m, w);
 
-                if (correct) {
-                    int pts = SkockoLogic.pointsForAttempt(attemptIndex + 1);
-                    matchRef.child(rk).child("scores").child(myId).get().addOnSuccessListener(ds -> {
-                        int curr = ds.exists() ? ds.getValue(Integer.class) : 0;
-                        matchRef.child(rk).child("scores").child(myId).setValue(curr + pts);
-                        matchRef.child(rk).child("phase").setValue("done");
-                    });
-                } else if (attemptIndex >= 5) {
-                    matchRef.child(rk).child("phase").setValue("opponent_chance");
-                    matchRef.child(rk).child("player").setValue(opponentId);
-                } else {
-                    currentGuess = new ArrayList<>(Arrays.asList("", "", "", ""));
-                }
-            }
+        if (correct) {
+            myScoreTotal += SkockoLogic.pointsForAttempt(attemptIndex + 1);
+            updateScoreUI();
+            endRoundSolo();
+        } else if (attemptIndex >= 5) {
+            endRoundSolo();
+        } else {
+            attemptIndex++;
         }
     }
 
+    private void showWriteError(String what, Exception e) {
+        Toast.makeText(this, "Write error (" + what + "): " + e.getMessage(),
+                Toast.LENGTH_LONG).show();
+    }
+
     private void endRound() {
-        if (timer != null) timer.cancel();
+        if (timer != null) {
+            timer.cancel();
+            timer = null;
+        }
+        if (roundListener != null) matchRef.child("round" + currentRound).removeEventListener(roundListener);
+        roundListener = null;
+
+        myScoreTotal += myRoundScore;
+        oppScoreTotal += oppRoundScore;
+        myRoundScore = 0;
+        oppRoundScore = 0;
+        updateScoreUI();
+
         if (currentRound == 1) {
             new Handler().postDelayed(() -> startMultiplayerRound(2), 2000);
         } else {
-            statsRepo.saveSkockoResult(true, 0, new StatsRepository.Callback<Void>() {
+            statsRepo.saveSkockoResult(true, myScoreTotal, new StatsRepository.Callback<Void>() {
                 @Override public void onSuccess(Void result) {}
                 @Override public void onError(Exception e) {}
             });
-            showFinalScore();
+            goNext();
         }
+    }
+
+    private void endRoundSolo() {
+        if (timer != null) {
+            timer.cancel();
+            timer = null;
+        }
+        statsRepo.saveSkockoResult(true, myScoreTotal, new StatsRepository.Callback<Void>() {
+            @Override public void onSuccess(Void result) {}
+            @Override public void onError(Exception e) {}
+        });
+        showFinalScore();
     }
 
     private void startTimer(int seconds) {
@@ -368,17 +498,30 @@ public class SkockoActivity extends AppCompatActivity {
             @Override public void onTick(long ms) { tvTimer.setText(String.valueOf(ms / 1000)); }
             @Override public void onFinish() {
                 tvTimer.setText("0");
-                if (isMyTurn && matchRef != null) {
-                    if (isOpponentChance) matchRef.child("round" + currentRound).child("phase").setValue("done");
-                    else if (attemptIndex >= 5) {
-                        matchRef.child("round" + currentRound).child("phase").setValue("opponent_chance");
-                        matchRef.child("round" + currentRound).child("player").setValue(opponentId);
-                    } else {
-                         // Force submit or pass turn if needed
+                if (matchRef != null) {
+                    if (isMyTurn) {
+                        if (isOpponentChance) {
+                            matchRef.child("round" + currentRound).child("phase").setValue("done")
+                                    .addOnFailureListener(e -> showWriteError("phase=timeup", e));
+                        } else {
+                            // FIX: vreme isteklo a pokušaj nije potvrđen — beleži se kao
+                            // promašen pokušaj (prazna polja se popunjavaju placeholder-om)
+                            // i automatski se prelazi dalje, umesto da ostane zaglavljeno.
+                            forceTimeoutAttempt();
+                        }
                     }
+                } else {
+                    endRoundSolo();
                 }
             }
         }.start();
+    }
+
+    private void forceTimeoutAttempt() {
+        List<String> guess = new ArrayList<>(currentGuess);
+        for (int i = 0; i < 4; i++) if (guess.get(i).isEmpty()) guess.set(i, "—");
+        submitNormalAttempt("round" + currentRound, guess);
+        currentGuess = new ArrayList<>(Arrays.asList("", "", "", ""));
     }
 
     private void resetGrid() {

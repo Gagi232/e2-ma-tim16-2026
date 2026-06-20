@@ -64,6 +64,15 @@ public class AsocijacijeActivity extends AppCompatActivity {
     private boolean hasOpenedInTurn = false;
     private String currentTurnId;
 
+    // NOVO: eksplicitno pratimo za koju rundu je UI / tajmer već inicijalizovan,
+    // umesto da to pogađamo iz identiteta `association` objekta ili `timer == null`.
+    // Ranije: igrač koji POKREĆE rundu već lokalno postavi `association` PRE nego
+    // što mu stigne echo iz Firebase-a, pa je kod mislio da je runda "već učitana"
+    // i preskakao setupRoundUI() (nema click listenera na poljima) i startSyncedTimer()
+    // (jer timer nikad nije vraćan na null posle cancel()).
+    private int uiSetupRound = -1;
+    private int timerStartedRound = -1;
+
     private int activeGuessTarget = -1;
     private CountDownTimer timer;
     private static final int ROUND_SECS = 240; // Spec: 4 mins total for 2 rounds? (2*2min)
@@ -89,6 +98,7 @@ public class AsocijacijeActivity extends AppCompatActivity {
 
         bindViews();
         updateTopBar();
+        updateScoreUI();
 
         if (isGuest || matchId == null) {
             loadSolo();
@@ -96,6 +106,11 @@ public class AsocijacijeActivity extends AppCompatActivity {
             matchRef = FirebaseDatabase.getInstance().getReference("activeMatches").child(matchId).child("asocijacije");
             startMultiplayerRound(1);
         }
+    }
+
+    private void updateScoreUI() {
+        tvMyScore.setText(String.valueOf(myScoreTotal));
+        tvOpponentScore.setText(String.valueOf(oppScoreTotal));
     }
 
     private void bindViews() {
@@ -185,7 +200,13 @@ public class AsocijacijeActivity extends AppCompatActivity {
                 data.put("setId", assoc.getId());
                 data.put("turn", myId);
                 data.put("phase", "playing");
-                matchRef.child(roundKey).setValue(data);
+                data.put("startedAt", com.google.firebase.database.ServerValue.TIMESTAMP);
+                // Briše STARI sadržaj ovog round-a (revealed, scores, solvedCols, turn...) prije nego
+                // upiše nov — sprečava da leftover podaci iz prethodnih test-mečeva blokiraju novu rundu.
+                matchRef.child(roundKey).removeValue()
+                        .addOnCompleteListener(t ->
+                                matchRef.child(roundKey).setValue(data)
+                                        .addOnFailureListener(e -> showWriteError("roundInit", e)));
                 listenToRound(roundKey);
             }, e -> showError());
         } else {
@@ -203,13 +224,25 @@ public class AsocijacijeActivity extends AppCompatActivity {
                 String setId = snapshot.child("setId").getValue(String.class);
                 if (setId == null) return;
 
+                // FIX: UI (grid + click listeneri) se inicijalizuje TAČNO JEDNOM po rundi,
+                // na osnovu broja runde, a ne na osnovu toga da li je `association` već
+                // lokalno postavljen. Igrač koji pokreće rundu već ima `association`
+                // postavljen pre nego što mu stigne echo iz baze, pa stara provera
+                // (`association == null || !id.equals(setId)`) nikad nije bila tačna za njega
+                // i setupRoundUI() (gde se kače click listeneri na polja) se nikad nije zvao.
+                if (uiSetupRound != currentRound) {
+                    uiSetupRound = currentRound;
+                    setupRoundUI(currentRound);
+                }
+
                 if (association == null || !association.getId().equals(setId)) {
                     repo.getAssociationById(setId, assoc -> {
                         association = assoc;
-                        setupRoundUI(currentRound);
+                        maybeStartTimer(snapshot);
                         updateStateFromSnapshot(snapshot);
                     }, e -> showError());
                 } else {
+                    maybeStartTimer(snapshot);
                     updateStateFromSnapshot(snapshot);
                 }
             }
@@ -219,11 +252,24 @@ public class AsocijacijeActivity extends AppCompatActivity {
         matchRef.child(roundKey).addValueEventListener(roundListener);
     }
 
+    /**
+     * FIX: tajmer se startuje tačno jednom po rundi (prema broju runde), a ne na osnovu
+     * `timer == null`. `timer.cancel()` u endRound() ne postavlja `timer` na null, pa je
+     * stari uslov bio false za svaku rundu posle prve — zbog toga tajmer nije radio kod
+     * igrača koji počinje rundu 2 (i sve naredne runde).
+     */
+    private void maybeStartTimer(DataSnapshot snap) {
+        if (timerStartedRound != currentRound) {
+            timerStartedRound = currentRound;
+            startSyncedTimer(snap);
+        }
+    }
+
     private void updateStateFromSnapshot(DataSnapshot snap) {
         currentTurnId = snap.child("turn").getValue(String.class);
         boolean wasMyTurn = isMyTurn;
         isMyTurn = Objects.equals(myId, currentTurnId);
-        
+
         if (isMyTurn && !wasMyTurn) {
             hasOpenedInTurn = false;
         }
@@ -278,6 +324,14 @@ public class AsocijacijeActivity extends AppCompatActivity {
         }
     }
 
+    private void startSyncedTimer(DataSnapshot snap) {
+        Long startedAt = snap.child("startedAt").getValue(Long.class);
+        long elapsed = (startedAt != null) ? (System.currentTimeMillis() - startedAt) : 0;
+        long remainingMs = AssociationLogic.ROUND_TIME_MS - elapsed;
+        if (remainingMs < 0) remainingMs = 0;
+        startTimer((int) (remainingMs / 1000));
+    }
+
     private void setupRoundUI(int round) {
         tvRound.setText("Runda " + round + "/2");
         colSolved = new boolean[4];
@@ -285,7 +339,7 @@ public class AsocijacijeActivity extends AppCompatActivity {
         finalSolved = false;
         hasOpenedInTurn = false;
         resetGrid();
-        startTimer(120);
+        // Timer se pokreće odvojeno u startSyncedTimer(), na osnovu serverskog "startedAt"
     }
 
     private void resetGrid() {
@@ -309,7 +363,7 @@ public class AsocijacijeActivity extends AppCompatActivity {
         etAnswer.setEnabled(enabled);
         btnPass.setVisibility(enabled && hasOpenedInTurn ? View.VISIBLE : View.GONE);
         setGuessButtonsVisible(enabled && hasOpenedInTurn);
-        
+
         for (int c = 0; c < 4; c++)
             for (int f = 0; f < 4; f++)
                 tvFields[c][f].setClickable(enabled && !hasOpenedInTurn && !fieldRevealed[c*4+f]);
@@ -322,7 +376,13 @@ public class AsocijacijeActivity extends AppCompatActivity {
 
         hasOpenedInTurn = true;
         if (matchRef != null) {
-            matchRef.child("round" + currentRound).child("revealed").child(String.valueOf(idx)).setValue(true);
+            matchRef.child("round" + currentRound).child("revealed").child(String.valueOf(idx)).setValue(true)
+                    .addOnFailureListener(e -> {
+                        // Write nije uspio — vrati lokalni flag da korisnik može da pokuša ponovo
+                        hasOpenedInTurn = false;
+                        showWriteError("revealed", e);
+                        updateUIForTurn();
+                    });
         } else {
             fieldRevealed[idx] = true;
             tvFields[col][field].setText(getWord(col, field));
@@ -363,58 +423,102 @@ public class AsocijacijeActivity extends AppCompatActivity {
     private void handleCorrectCol(int col) {
         if (matchRef != null) {
             String rk = "round" + currentRound;
-            matchRef.child(rk).child("solvedCols").child(String.valueOf(col)).setValue(myId);
-            // Calculate points
+            matchRef.child(rk).child("solvedCols").child(String.valueOf(col)).setValue(myId)
+                    .addOnFailureListener(e -> showWriteError("solvedCols", e));
+
             int hidden = 0;
             for (int f = 0; f < 4; f++) if (!fieldRevealed[col*4+f]) hidden++;
             int pts = AssociationLogic.colScore(hidden);
-            matchRef.child(rk).child("scores").child(myId).get().addOnSuccessListener(ds -> {
-                int current = ds.exists() ? ds.getValue(Integer.class) : 0;
-                matchRef.child(rk).child("scores").child(myId).setValue(current + pts);
-            });
+
+            matchRef.child(rk).child("scores").child(myId)
+                    .runTransaction(new com.google.firebase.database.Transaction.Handler() {
+                        @Override
+                        public com.google.firebase.database.Transaction.Result doTransaction(
+                                com.google.firebase.database.MutableData data) {
+                            Integer cur = data.getValue(Integer.class);
+                            data.setValue((cur == null ? 0 : cur) + pts);
+                            return com.google.firebase.database.Transaction.success(data);
+                        }
+                        @Override
+                        public void onComplete(DatabaseError error, boolean committed,
+                                               DataSnapshot snap) {
+                            if (error != null) showWriteError("scores(col)", error.toException());
+                        }
+                    });
         } else {
             colSolved[col] = true;
             tvColSolution[col].setText(getColSolution(col));
+            myScoreTotal += AssociationLogic.colScore(0);
+            updateScoreUI();
             // In solo, keep turn if correct
         }
     }
-
     private void handleCorrectFinal() {
         if (matchRef != null) {
             String rk = "round" + currentRound;
-            matchRef.child(rk).child("finalSolved").setValue(myId);
-            // Calculate total points for round
             int[] hiddenPerCol = new int[4];
             for (int c = 0; c < 4; c++) {
                 for (int f = 0; f < 4; f++) if (!fieldRevealed[c*4+f]) hiddenPerCol[c]++;
             }
             int pts = AssociationLogic.finalScore(colSolved, hiddenPerCol);
-            matchRef.child(rk).child("scores").child(myId).get().addOnSuccessListener(ds -> {
-                int current = ds.exists() ? ds.getValue(Integer.class) : 0;
-                matchRef.child(rk).child("scores").child(myId).setValue(current + pts);
-                matchRef.child(rk).child("phase").setValue("done");
-            });
+
+            matchRef.child(rk).child("scores").child(myId)
+                    .runTransaction(new com.google.firebase.database.Transaction.Handler() {
+                        @Override
+                        public com.google.firebase.database.Transaction.Result doTransaction(
+                                com.google.firebase.database.MutableData data) {
+                            Integer cur = data.getValue(Integer.class);
+                            data.setValue((cur == null ? 0 : cur) + pts);
+                            return com.google.firebase.database.Transaction.success(data);
+                        }
+                        @Override
+                        public void onComplete(DatabaseError error, boolean committed,
+                                               DataSnapshot snap) {
+                            if (error != null) {
+                                showWriteError("scores(final)", error.toException());
+                                return;
+                            }
+                            // Tek SADA, kad su bodovi sigurno upisani, javi finalSolved i done
+                            matchRef.child(rk).child("finalSolved").setValue(myId)
+                                    .addOnFailureListener(e -> showWriteError("finalSolved", e));
+                            matchRef.child(rk).child("phase").setValue("done")
+                                    .addOnFailureListener(e -> showWriteError("phase=done", e));
+                        }
+                    });
         } else {
             finalSolved = true;
+            int[] hiddenPerCol = new int[4];
+            for (int c = 0; c < 4; c++)
+                for (int f = 0; f < 4; f++) if (!fieldRevealed[c*4+f]) hiddenPerCol[c]++;
+            int pts = AssociationLogic.finalScore(colSolved, hiddenPerCol);
+            myScoreTotal += pts;
+            updateScoreUI();
             tvFinalSolution.setText(association.getFinalSolution());
             revealAll();
-            endRound(0, 0); 
+            endRound(0, 0);
         }
     }
 
+    private void showWriteError(String what, Exception e) {
+        Toast.makeText(this, "Write error (" + what + "): " + e.getMessage(),
+                Toast.LENGTH_LONG).show();
+    }
     private void switchTurn() {
         hasOpenedInTurn = false;
         if (matchRef != null) {
             matchRef.child("round" + currentRound).child("turn").setValue(opponentId);
         } else {
             // Solo: just reset opening flag or end?
-            isMyTurn = true; 
+            isMyTurn = true;
             updateUIForTurn();
         }
     }
 
     private void endRound(int myRoundPts, int oppRoundPts) {
-        if (timer != null) timer.cancel();
+        if (timer != null) {
+            timer.cancel();
+            timer = null;
+        }
         if (roundListener != null) matchRef.child("round" + currentRound).removeEventListener(roundListener);
         roundListener = null;
 
@@ -428,23 +532,40 @@ public class AsocijacijeActivity extends AppCompatActivity {
                 @Override public void onSuccess(Void r) {}
                 @Override public void onError(Exception e) {}
             });
-            showFinalScore();
+            goNext();
         }
     }
 
     private void startTimer(int seconds) {
         if (timer != null) timer.cancel();
+        if (seconds <= 0) {
+            tvTimer.setText("0");
+            onRoundTimeUp();
+            return;
+        }
         timer = new CountDownTimer(seconds * 1000L, 1000) {
             @Override public void onTick(long ms) { tvTimer.setText(String.valueOf(ms / 1000)); }
             @Override public void onFinish() {
                 tvTimer.setText("0");
-                if (isMyTurn && matchRef != null) {
-                    matchRef.child("round" + currentRound).child("phase").setValue("done");
-                } else if (isGuest || matchId == null) {
-                    endRound(0, 0);
-                }
+                onRoundTimeUp();
             }
         }.start();
+    }
+
+    /** Bilo koji od igrača (ne samo onaj kome je red) može da javi da je vreme isteklo. */
+    private void onRoundTimeUp() {
+        if (matchRef != null) {
+            String rk = "round" + currentRound;
+            matchRef.child(rk).child("phase").get().addOnSuccessListener(ds -> {
+                String phase = ds.getValue(String.class);
+                if (!"done".equals(phase)) {
+                    matchRef.child(rk).child("phase").setValue("done")
+                            .addOnFailureListener(e -> showWriteError("phase=timeup", e));
+                }
+            });
+        } else if (isGuest || matchId == null) {
+            endRound(0, 0);
+        }
     }
 
     private void revealAll() {

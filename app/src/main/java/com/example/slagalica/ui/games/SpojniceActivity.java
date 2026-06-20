@@ -1,7 +1,6 @@
 package com.example.slagalica.ui.games;
 
 import android.content.Intent;
-import android.content.res.ColorStateList;
 import android.os.Bundle;
 import android.os.CountDownTimer;
 import android.os.Handler;
@@ -15,7 +14,6 @@ import com.example.slagalica.data.model.SpojniceSet;
 import com.example.slagalica.data.repository.GameRepository;
 import com.example.slagalica.data.repository.StatsRepository;
 import com.example.slagalica.ui.main.GuestActivity;
-import com.google.android.material.button.MaterialButton;
 import com.google.firebase.database.*;
 
 import java.util.*;
@@ -30,37 +28,31 @@ public class SpojniceActivity extends AppCompatActivity {
     private String  matchId, myId, opponentId;
     private boolean isPlayer1, isGuest;
 
-    // Bodovi samo za ovu igru (prikaz u UI)
+    // Bodovi samo za ovu igru (Spojnice)
     private int totalMy  = 0;
     private int totalOpp = 0;
-    // Kumulativ iz prethodnih igara (ne prikazuje se, samo se prosleđuje dalje)
+    // Kumulativ iz prethodnih igara — PRIKAZUJEMO ih, ne samo prosleđujemo
     private int prevMy   = 0;
     private int prevOpp  = 0;
 
     // ── Stanje igre ───────────────────────────────────────────────────────────
     private SpojniceSet set;
-    // rightPairIdx[i] = indeks para čiji desni element stoji na poziciji i u UI-ju
-    private final int[]      rightPairIdx = new int[PAIRS];
-    private int              currentRound   = 1;
-    private boolean          isMyTurn       = false;
-    private boolean          isSecondChance = false;
-    private int              selectedLeft   = -1; // -1 = ništa nije izabrano
-    // leftSelected[i] = true ako sam kliknuo na levi element i (čekam desni)
-    private final boolean[]  leftSelected   = new boolean[PAIRS];
+    private final int[]     rightPairIdx = new int[PAIRS];
+    private int             currentRound   = 1;
+    private boolean         isMyTurn       = false;
+    private boolean         isSecondChance = false;
+    private int             selectedLeft   = -1;
 
-    // Konekcije: leftIdx → rightPairIdx (vrednost = tačan par ako jednaki)
     private final Map<Integer, Integer> myConns  = new HashMap<>();
     private final Map<Integer, Integer> oppConns = new HashMap<>();
 
     private int myRoundScore  = 0;
     private int oppRoundScore = 0;
 
-    private CountDownTimer   timer;
+    private CountDownTimer    timer;
     private ValueEventListener phaseListener;
 
     // ── UI ────────────────────────────────────────────────────────────────────
-    // activity_spojnice.xml ima STATIČKE TextViews: tvLeft1-5 i tvRight1-5
-    // NE postoje: tvTurn, tvCategory — koristimo tvRound i tvGameTitle umesto njih
     private TextView   tvRound, tvTimer, tvMyScore, tvOppScore, tvGameTitle;
     private TextView[] leftViews  = new TextView[PAIRS];
     private TextView[] rightViews = new TextView[PAIRS];
@@ -82,8 +74,8 @@ public class SpojniceActivity extends AppCompatActivity {
         myId       = getIntent().getStringExtra("myId");
         opponentId = getIntent().getStringExtra("opponentId");
         isPlayer1  = getIntent().getBooleanExtra("isPlayer1", true);
-        prevMy  = getIntent().getIntExtra("kzzMyScore", 0);
-        prevOpp = getIntent().getIntExtra("kzzOpponentScore", 0);
+        prevMy     = getIntent().getIntExtra("kzzMyScore", 0);
+        prevOpp    = getIntent().getIntExtra("kzzOpponentScore", 0);
 
         initViews();
         updateScoreUI();
@@ -92,7 +84,6 @@ public class SpojniceActivity extends AppCompatActivity {
             matchRef = FirebaseDatabase.getInstance()
                     .getReference("activeMatches").child(matchId).child("spojnice");
 
-        // Dugme "Sledeća igra" sakrivamo — igra se sama završava
         findViewById(R.id.btnFinish).setVisibility(android.view.View.GONE);
         findViewById(R.id.btnLeave).setOnClickListener(v -> forfeit());
 
@@ -103,19 +94,18 @@ public class SpojniceActivity extends AppCompatActivity {
     protected void onDestroy() {
         super.onDestroy();
         if (timer != null) timer.cancel();
+        removePhaseListener("round" + currentRound);
     }
 
     // ── Init pogleda ─────────────────────────────────────────────────────────
 
     private void initViews() {
-        // tvGameTitle koristimo za kategoriju (nema tvCategory u XML-u)
         tvGameTitle = findViewById(R.id.tvGameTitle);
-        tvRound     = findViewById(R.id.tvRound);      // koristimo i za info o redu
+        tvRound     = findViewById(R.id.tvRound);
         tvTimer     = findViewById(R.id.tvTimer);
         tvMyScore   = findViewById(R.id.tvMyScore);
         tvOppScore  = findViewById(R.id.tvOpponentScore);
 
-        // Statički TextViews iz XML-a — tvLeft1..5 i tvRight1..5
         leftViews[0]  = findViewById(R.id.tvLeft1);
         leftViews[1]  = findViewById(R.id.tvLeft2);
         leftViews[2]  = findViewById(R.id.tvLeft3);
@@ -136,7 +126,6 @@ public class SpojniceActivity extends AppCompatActivity {
         isSecondChance = false;
         myConns.clear();
         oppConns.clear();
-        Arrays.fill(leftSelected, false);
         selectedLeft   = -1;
         myRoundScore   = 0;
         oppRoundScore  = 0;
@@ -148,25 +137,24 @@ public class SpojniceActivity extends AppCompatActivity {
         boolean iGoFirst = (round == 1) ? isPlayer1 : !isPlayer1;
 
         if (isGuest || matchRef == null) {
-            // Solo / gost mod
             gameRepo.getRandomSpojniceSet(
                     s -> { set = s; buildUI(); beginMyTurn(); },
-                    e -> showError());
+                    e -> showError("Greška pri učitavanju seta"));
             return;
         }
 
         String roundKey = "round" + round;
         if (iGoFirst) {
-            // Ja biram set i upisujem setId u DB
             gameRepo.getRandomSpojniceSet(s -> {
                 set = s;
-                matchRef.child(roundKey).child("setId").setValue(s.getId());
-                matchRef.child(roundKey).child("phase").setValue("first");
+                matchRef.child(roundKey).child("setId").setValue(s.getId())
+                        .addOnFailureListener(e -> showWriteError("setId", e));
+                matchRef.child(roundKey).child("phase").setValue("first")
+                        .addOnFailureListener(e -> showWriteError("phase=first", e));
                 buildUI();
                 beginMyTurn();
-            }, e -> showError());
+            }, e -> showError("Greška pri dobavljanju seta"));
         } else {
-            // Čekam setId od protivnika
             pollForSetId(roundKey);
         }
     }
@@ -184,28 +172,25 @@ public class SpojniceActivity extends AppCompatActivity {
                             set = s;
                             buildUI();
                             waitForOpponentTurn(roundKey);
-                        }, e -> showError());
+                        }, e -> showError("Greška pri učitavanju seta po ID-u"));
                     }
-                    @Override public void onCancelled(DatabaseError e) { showError(); }
+                    @Override public void onCancelled(DatabaseError e) {
+                        showError("Nemam pristup partiji (setId): " + e.getMessage());
+                    }
                 });
     }
 
     // ── Izgradnja UI-a ────────────────────────────────────────────────────────
-    // Leva kolona: redom; desna kolona: izmešana.
-    // Koristimo statičke tvLeft1-5 i tvRight1-5 iz XML-a.
 
     private void buildUI() {
-        // Kategorija prikazujemo u "tvGameTitle" (jedini odgovarajući TextView)
         tvGameTitle.setText(set.getCategory());
 
-        // Leva strana — u redosledu
         List<SpojnicePar> pairs = set.getPairs();
         for (int i = 0; i < PAIRS; i++) {
             leftViews[i].setText(pairs.get(i).getLeft());
-            leftViews[i].setEnabled(false); // uključujemo ih tek na beginMyTurn()
+            leftViews[i].setEnabled(false);
         }
 
-        // Desna strana — izmešana; pamtimo mapiranje pozicija → par
         List<Integer> order = new ArrayList<>(Arrays.asList(0, 1, 2, 3, 4));
         Collections.shuffle(order);
         for (int i = 0; i < PAIRS; i++) {
@@ -223,7 +208,7 @@ public class SpojniceActivity extends AppCompatActivity {
             leftViews[i].setOnClickListener(v -> onLeftClicked(li));
         }
         for (int i = 0; i < PAIRS; i++) {
-            final int ri = i; // pozicija u UI-ju (NE indeks para!)
+            final int ri = i;
             rightViews[i].setOnClickListener(v -> onRightClicked(ri));
         }
     }
@@ -255,7 +240,11 @@ public class SpojniceActivity extends AppCompatActivity {
                     });
                 }
             }
-            @Override public void onCancelled(DatabaseError e) {}
+            @Override public void onCancelled(DatabaseError e) {
+                // Ovo je tačno mesto gde je ranije sve "tiho stajalo" —
+                // sad bar vidiš zašto ako pravila nisu ispravna.
+                showError("Nemam pristup fazi partije: " + e.getMessage());
+            }
         };
         matchRef.child(roundKey).child("phase").addValueEventListener(phaseListener);
     }
@@ -275,17 +264,14 @@ public class SpojniceActivity extends AppCompatActivity {
                 });
     }
 
-    /** Vizuelno označi parove koje je protivnik već zauzeo. */
     private void markOppOccupied() {
         for (Map.Entry<Integer, Integer> e : oppConns.entrySet()) {
-            int li = e.getKey(); // indeks lijevog pojma
-            int pi = e.getValue(); // indeks para koji je spojen
-            // Boja: tačno (li==pi) zelena, netačno narandžasta
+            int li = e.getKey();
+            int pi = e.getValue();
             int color = (li == pi) ? 0xFF4CAF50 : 0xFFFF9800;
             leftViews[li].setEnabled(false);
             leftViews[li].setBackgroundColor(color);
             leftViews[li].setAlpha(0.6f);
-            // Nađi desni view koji odgovara pi
             for (int i = 0; i < PAIRS; i++) {
                 if (rightPairIdx[i] == pi) {
                     rightViews[i].setEnabled(false);
@@ -306,7 +292,8 @@ public class SpojniceActivity extends AppCompatActivity {
         } else {
             String roundKey = "round" + currentRound;
             writeMyConnections(roundKey, () -> {
-                matchRef.child(roundKey).child("phase").setValue("second");
+                matchRef.child(roundKey).child("phase").setValue("second")
+                        .addOnFailureListener(e -> showWriteError("phase=second", e));
                 waitForDone(roundKey);
             });
         }
@@ -322,7 +309,9 @@ public class SpojniceActivity extends AppCompatActivity {
                     endRound();
                 }
             }
-            @Override public void onCancelled(DatabaseError e) {}
+            @Override public void onCancelled(DatabaseError e) {
+                showError("Nemam pristup fazi partije: " + e.getMessage());
+            }
         };
         matchRef.child(roundKey).child("phase").addValueEventListener(phaseListener);
     }
@@ -332,23 +321,20 @@ public class SpojniceActivity extends AppCompatActivity {
     private void onLeftClicked(int leftIdx) {
         if (!isMyTurn || myConns.containsKey(leftIdx) || oppConns.containsKey(leftIdx)) return;
 
-        // Poništi prethodni izbor
-        if (selectedLeft >= 0) {
+        if (selectedLeft >= 0)
             leftViews[selectedLeft].setBackgroundColor(
                     getResources().getColor(R.color.white, getTheme()));
-        }
+
         selectedLeft = leftIdx;
         leftViews[leftIdx].setBackgroundColor(
                 getResources().getColor(R.color.primary_yellow, getTheme()));
     }
 
     private void onRightClicked(int rightUiPos) {
-        // rightUiPos = pozicija u UI-ju; rightPairIdx[rightUiPos] = indeks para
         if (!isMyTurn || selectedLeft < 0) return;
 
         int pairIdxOfRight = rightPairIdx[rightUiPos];
 
-        // Zauzeto?
         if (myConns.containsValue(pairIdxOfRight) || oppConns.containsValue(pairIdxOfRight))
             return;
 
@@ -362,7 +348,6 @@ public class SpojniceActivity extends AppCompatActivity {
         rightViews[rightUiPos].setEnabled(false);
         selectedLeft = -1;
 
-        // Ako su svi parovi popunjeni, završavamo red pre isteka tajmera
         if ((myConns.size() + oppConns.size()) >= PAIRS) {
             if (timer != null) timer.cancel();
             onMyTurnTimeUp();
@@ -377,8 +362,8 @@ public class SpojniceActivity extends AppCompatActivity {
 
         if (matchRef != null) {
             writeMyConnections(roundKey, () -> {
-                matchRef.child(roundKey).child("phase").setValue("done");
-                // Učitavamo sve konekcije radi tačnog bodovanja
+                matchRef.child(roundKey).child("phase").setValue("done")
+                        .addOnFailureListener(e -> showWriteError("phase=done", e));
                 matchRef.child(roundKey).child("connections")
                         .addListenerForSingleValueEvent(new ValueEventListener() {
                             @Override public void onDataChange(DataSnapshot snap) {
@@ -393,7 +378,9 @@ public class SpojniceActivity extends AppCompatActivity {
                                                 e.getValue(Integer.class));
                                 calcAndProceed();
                             }
-                            @Override public void onCancelled(DatabaseError e) { calcAndProceed(); }
+                            @Override public void onCancelled(DatabaseError e) {
+                                calcAndProceed();
+                            }
                         });
             });
         } else {
@@ -402,7 +389,6 @@ public class SpojniceActivity extends AppCompatActivity {
     }
 
     private void calcAndProceed() {
-        // Spec: 2 boda za svaki tačno spojen par (leftIdx == rightPairIdx)
         for (Map.Entry<Integer, Integer> e : myConns.entrySet())
             if (e.getKey().equals(e.getValue())) myRoundScore += PTS_PER_PAIR;
         for (Map.Entry<Integer, Integer> e : oppConns.entrySet())
@@ -428,7 +414,9 @@ public class SpojniceActivity extends AppCompatActivity {
         for (Map.Entry<Integer, Integer> e : myConns.entrySet())
             data.put(String.valueOf(e.getKey()), e.getValue());
         matchRef.child(roundKey).child("connections").child(myId)
-                .setValue(data).addOnCompleteListener(t -> then.run());
+                .setValue(data)
+                .addOnFailureListener(e -> showWriteError("connections", e))
+                .addOnCompleteListener(t -> then.run());
     }
 
     private void removePhaseListener(String roundKey) {
@@ -463,32 +451,29 @@ public class SpojniceActivity extends AppCompatActivity {
     }
 
     private void resetAllColors() {
-        int white = getResources().getColor(R.color.white, getTheme());
+        int white  = getResources().getColor(R.color.white, getTheme());
         int yellow = getResources().getColor(R.color.primary_yellow_light, getTheme());
-        for (TextView tv : leftViews) {
-            if (tv != null) { tv.setBackgroundColor(white); tv.setAlpha(1f); }
-        }
-        for (TextView tv : rightViews) {
-            if (tv != null) { tv.setBackgroundColor(yellow); tv.setAlpha(1f); }
-        }
+        for (TextView tv : leftViews)  if (tv != null) { tv.setBackgroundColor(white);  tv.setAlpha(1f); }
+        for (TextView tv : rightViews) if (tv != null) { tv.setBackgroundColor(yellow); tv.setAlpha(1f); }
     }
 
+    /** Prikazujemo KUMULATIV (prethodne igre + ova igra), ne samo Spojnice bodove. */
     private void updateScoreUI() {
-        if (tvMyScore  != null) tvMyScore.setText(String.valueOf(totalMy));
-        if (tvOppScore != null) tvOppScore.setText(String.valueOf(totalOpp));
+        if (tvMyScore  != null) tvMyScore.setText(String.valueOf(prevMy  + totalMy));
+        if (tvOppScore != null) tvOppScore.setText(String.valueOf(prevOpp + totalOpp));
     }
 
     private void finishGame() {
         if (timer != null) timer.cancel();
         if (matchRef != null) {
-            matchRef.child("finalScore").child(myId).setValue(prevMy + totalMy);
-            matchRef.child("done").child(myId).setValue(true);
+            matchRef.child("finalScore").child(myId).setValue(prevMy + totalMy)
+                    .addOnFailureListener(e -> showWriteError("finalScore", e));
+            matchRef.child("done").child(myId).setValue(true)
+                    .addOnFailureListener(e -> showWriteError("done", e));
         }
 
-        // totalMy je sada samo bodovi od Spojnica (počelo od 0)
         int connected = totalMy / 2;
-        StatsRepository statsRepo = new StatsRepository();
-        statsRepo.saveSpojniceResult(connected, 10, totalMy,
+        new StatsRepository().saveSpojniceResult(connected, 10, totalMy,
                 new StatsRepository.Callback<Void>() {
                     @Override public void onSuccess(Void r) {}
                     @Override public void onError(Exception e) {}
@@ -505,18 +490,24 @@ public class SpojniceActivity extends AppCompatActivity {
         startActivity(intent);
         finish();
     }
+
     private void forfeit() {
         if (timer != null) timer.cancel();
         if (matchRef != null)
-            matchRef.getParent().child("status").setValue("forfeit_" + myId);
+            matchRef.getParent().child("info").child("status").setValue("forfeit_" + myId)
+                    .addOnFailureListener(e -> showWriteError("forfeit", e));
         Intent i = new Intent(this, isGuest ? GuestActivity.class : MainActivity.class);
         i.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
         startActivity(i);
         finish();
     }
 
-    private void showError() {
-        Toast.makeText(this, "Greška pri učitavanju igre!", Toast.LENGTH_SHORT).show();
-        finish();
+    private void showError(String msg) {
+        Toast.makeText(this, msg, Toast.LENGTH_LONG).show();
+    }
+
+    private void showWriteError(String what, Exception e) {
+        Toast.makeText(this, "Write error (" + what + "): " + e.getMessage(),
+                Toast.LENGTH_LONG).show();
     }
 }

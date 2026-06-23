@@ -79,12 +79,11 @@ public class MojBrojLogic {
         if (myExact) return 10;
 
         // Ni jedan nije tačan — ko je bliži?
-        if (myResult == Integer.MIN_VALUE) return 0; // ništa nisam uneo
+        if (myResult == Integer.MIN_VALUE || myResult == -999999) return 0;
 
         int myDiff  = Math.abs(myResult - target);
-        int oppDiff = (oppResult == Integer.MIN_VALUE)
-                ? Integer.MAX_VALUE
-                : Math.abs(oppResult - target);
+        int oppDiff = (oppResult == Integer.MIN_VALUE || oppResult == -999999)
+                ? Integer.MAX_VALUE : Math.abs(oppResult - target);
 
         if (myDiff < oppDiff) return 5;
         if (myDiff == oppDiff && isMyRound) return 5; // spec: runda bila moja

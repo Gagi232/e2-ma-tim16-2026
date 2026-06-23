@@ -6,6 +6,7 @@ import android.os.CountDownTimer;
 import android.os.Handler;
 import android.widget.TextView;
 import android.widget.Toast;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import com.example.slagalica.MainActivity;
 import com.example.slagalica.R;
@@ -13,6 +14,9 @@ import com.example.slagalica.data.model.SpojnicePar;
 import com.example.slagalica.data.model.SpojniceSet;
 import com.example.slagalica.data.repository.GameRepository;
 import com.example.slagalica.data.repository.StatsRepository;
+import com.example.slagalica.data.model.User;
+import com.example.slagalica.data.repository.UserRepository;
+import com.example.slagalica.logic.LeagueLogic;
 import com.example.slagalica.ui.main.GuestActivity;
 import com.google.firebase.database.*;
 
@@ -74,12 +78,13 @@ public class SpojniceActivity extends AppCompatActivity {
         myId       = getIntent().getStringExtra("myId");
         opponentId = getIntent().getStringExtra("opponentId");
         isPlayer1  = getIntent().getBooleanExtra("isPlayer1", true);
-        prevMy     = getIntent().getIntExtra("kzzMyScore", 0);
-        prevOpp    = getIntent().getIntExtra("kzzOpponentScore", 0);
+        prevMy     = getIntent().getIntExtra("totalMyScore", 0);
+        prevOpp    = getIntent().getIntExtra("totalOpponentScore", 0);
         isFriendly = getIntent().getBooleanExtra("isFriendly", false);
 
         initViews();
         updateScoreUI();
+        updateTopBar();
 
         if (!isGuest && matchId != null)
             matchRef = FirebaseDatabase.getInstance()
@@ -495,6 +500,41 @@ public class SpojniceActivity extends AppCompatActivity {
         if (tvMyScore  != null) tvMyScore.setText(String.valueOf(prevMy  + totalMy));
         if (tvOppScore != null) tvOppScore.setText(String.valueOf(prevOpp + totalOpp));
     }
+
+    private void updateTopBar() {
+        TextView tvTokens = findViewById(R.id.tvTokens);
+        TextView tvStars  = findViewById(R.id.tvStars);
+        TextView tvLeague = findViewById(R.id.tvLeague);
+
+        if (isGuest) {
+            if (tvTokens != null) tvTokens.setText("0");
+            if (tvStars  != null) tvStars.setText("0");
+            if (tvLeague != null) tvLeague.setText("🏆");
+            return;
+        }
+
+        new UserRepository().getCurrentUser(new UserRepository.Callback<User>() {
+            @Override
+            public void onSuccess(User user) {
+                if (user != null) {
+                    if (tvTokens != null) tvTokens.setText(String.valueOf(user.getTokens()));
+                    if (tvStars  != null) tvStars.setText(String.valueOf(user.getStars()));
+                    int league = LeagueLogic.calculateLeague(user.getStars());
+                    if (tvLeague != null) {
+                        tvLeague.setText(LeagueLogic.getLeagueIcon(league));
+                        tvLeague.setOnClickListener(v -> showLeagueDialog());
+                    }
+                }
+            }
+            @Override public void onError(Exception e) {}
+        });
+    }
+
+    private void showLeagueDialog() {
+        String[] leagues = {"🏆 Liga 0", "📚 Početnička Liga", "🧠 Školska Liga", "🏛️ Akademska Liga", "👑 Genijalac Liga"};
+        new AlertDialog.Builder(this).setTitle("Lige").setItems(leagues, null).show();
+    }
+
 
     private void finishGame() {
         if (timer != null) timer.cancel();

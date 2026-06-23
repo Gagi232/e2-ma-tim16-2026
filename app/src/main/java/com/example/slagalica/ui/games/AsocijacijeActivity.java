@@ -168,17 +168,39 @@ public class AsocijacijeActivity extends AppCompatActivity {
     }
 
     private void updateTopBar() {
+        TextView tvTokens = findViewById(R.id.tvTokens);
+        TextView tvStars  = findViewById(R.id.tvStars);
+        TextView tvLeague = findViewById(R.id.tvLeague);
+
+        if (isGuest) {
+            if (tvTokens != null) tvTokens.setText("0");
+            if (tvStars  != null) tvStars.setText("0");
+            if (tvLeague != null) tvLeague.setText("🏆");
+            return;
+        }
+
         userRepo.getCurrentUser(new UserRepository.Callback<User>() {
             @Override
             public void onSuccess(User user) {
-                ((TextView) findViewById(R.id.tvTokens)).setText(String.valueOf(user.getTokens()));
-                ((TextView) findViewById(R.id.tvStars)).setText(String.valueOf(user.getStars()));
-                int league = LeagueLogic.calculateLeague(user.getStars());
-                ((TextView) findViewById(R.id.tvLeague)).setText(LeagueLogic.getLeagueIcon(league));
+                if (user != null) {
+                    if (tvTokens != null) tvTokens.setText(String.valueOf(user.getTokens()));
+                    if (tvStars  != null) tvStars.setText(String.valueOf(user.getStars()));
+                    int league = LeagueLogic.calculateLeague(user.getStars());
+                    if (tvLeague != null) {
+                        tvLeague.setText(LeagueLogic.getLeagueIcon(league));
+                        tvLeague.setOnClickListener(v -> showLeagueDialog());
+                    }
+                }
             }
             @Override public void onError(Exception e) {}
         });
     }
+
+    private void showLeagueDialog() {
+        String[] leagues = {"🏆 Liga 0", "📚 Početnička Liga", "🧠 Školska Liga", "🏛️ Akademska Liga", "👑 Genijalac Liga"};
+        new AlertDialog.Builder(this).setTitle("Lige").setItems(leagues, null).show();
+    }
+
 
     private void loadSolo() {
         repo.getRandomAssociation(assoc -> {

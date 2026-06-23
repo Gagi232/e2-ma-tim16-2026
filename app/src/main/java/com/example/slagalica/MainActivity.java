@@ -15,6 +15,7 @@ import androidx.fragment.app.Fragment;
 
 import com.example.slagalica.data.remote.DatabaseSeeder;
 import com.example.slagalica.data.repository.UserRepository;
+import com.example.slagalica.logic.LeagueLogic;
 import com.example.slagalica.ui.friends.FriendsFragment;
 import com.example.slagalica.ui.games.KoZnaZnaActivity;
 import com.example.slagalica.ui.leaderboard.LeaderboardFragment;
@@ -29,21 +30,27 @@ public class MainActivity extends AppCompatActivity {
 
     private com.google.firebase.firestore.ListenerRegistration notifListenerReg;
     private java.util.Set<String> seenNotifIds = new java.util.HashSet<>();
+    private TextView tvTokens, tvStars, tvLeague, tvProfile;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        TextView tvLeague = findViewById(R.id.tvLeague);
+        tvLeague = findViewById(R.id.tvLeague);
+        tvStars  = findViewById(R.id.tvStars);
+        tvTokens = findViewById(R.id.tvTokens);
+        tvProfile = findViewById(R.id.tvProfile);
+
         DatabaseSeeder.seedAll();
         tvLeague.setOnClickListener(v -> showLeagueDialog());
-        ImageView ivProfile = findViewById(R.id.ivProfile);
         MaterialButton btnPlay = findViewById(R.id.btnPlay);
         btnPlay.setOnClickListener(v ->
                 startActivity(new Intent(this, KoZnaZnaActivity.class))
         );
         new UserRepository().setOnline(true, null);
         BottomNavigationView bottomNav = findViewById(R.id.bottomNav);
+
+        updateTopBar();
 
         new com.example.slagalica.data.repository.RegionStatsRepository()
                 .checkAndRunMonthlyReset(new com.example.slagalica.data.repository.RegionStatsRepository.Callback<Void>() {
@@ -67,7 +74,7 @@ public class MainActivity extends AppCompatActivity {
 
         loadFragment(new HomeFragment());
 
-        ivProfile.setOnClickListener(v ->
+        tvProfile.setOnClickListener(v ->
                 startActivity(new Intent(this, ProfileActivity.class))
         );
 
@@ -100,6 +107,35 @@ public class MainActivity extends AppCompatActivity {
     protected void onResume() {
         super.onResume();
         new UserRepository().setOnline(true, null);
+        updateTopBar();
+    }
+
+    private void updateTopBar() {
+        UserRepository userRepo = new UserRepository();
+        userRepo.getCurrentUser(new UserRepository.Callback<com.example.slagalica.data.model.User>() {
+            @Override
+            public void onSuccess(com.example.slagalica.data.model.User user) {
+                if (user != null) {
+                    tvTokens.setText(String.valueOf(user.getTokens()));
+                    tvStars.setText(String.valueOf(user.getStars()));
+
+                    int league = LeagueLogic.calculateLeague(user.getStars());
+                    tvLeague.setText(LeagueLogic.getLeagueIcon(league));
+
+                    String avatar = user.getAvatarUrl();
+                    tvProfile.setText(avatar != null && !avatar.isEmpty() ? avatar : "👤");
+
+                    // Sinkronizacija lige ako se promenila na osnovu zvezda
+                    if (league != user.getLeague()) {
+                        userRepo.updateField("league", league, new UserRepository.Callback<Void>() {
+                            @Override public void onSuccess(Void r) {}
+                            @Override public void onError(Exception e) {}
+                        });
+                    }
+                }
+            }
+            @Override public void onError(Exception e) {}
+        });
     }
 
     @Override

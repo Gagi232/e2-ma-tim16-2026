@@ -9,28 +9,41 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.slagalica.R;
 import com.example.slagalica.data.model.Korak;
+import com.example.slagalica.data.model.User;
+import com.example.slagalica.data.repository.UserRepository;
+import com.example.slagalica.logic.LeagueLogic;
 import com.example.slagalica.data.model.KorakState;
+import com.example.slagalica.logic.KorakLogic;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.textfield.TextInputEditText;
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.ServerValue;
+import com.google.firebase.database.ValueEventListener;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
+import androidx.annotation.NonNull;
 
 public class KorakPoKorakActivity extends AppCompatActivity {
 
-    // Svaka slagalica: {tacan_odgovor, korak1, korak2, ..., korak7}
     private static final String[][] PUZZLES = {
-        {"jabuka",    "voce",      "crvena ili zelena", "Newton",   "raste na drvetu", "Adam i Eva",        "u tortama",   "J_A_U_A"},
-        {"suncokret", "biljka",    "seme",              "zuta",     "okrenuto ka suncu","Van Gogh",          "ulje",        "SUNCOKRET"},
-        {"voda",      "tecnost",   "providna",          "H2O",      "okean",            "zedja",             "led ili para","VO_A"},
-        {"knjiga",    "papir",     "pisanje",           "biblioteka","Gutenberg",        "ucenje",            "autor",       "KNJ_GA"}
+            {"jabuka",    "voce",      "crvena ili zelena", "Newton",   "raste na drvetu", "Adam i Eva",        "u tortama",   "J_A_U_A"},
+            {"suncokret", "biljka",    "seme",              "zuta",     "okrenuto ka suncu","Van Gogh",          "ulje",        "SUNCOKRET"},
+            {"voda",      "tecnost",   "providna",          "H2O",      "okean",            "zedja",             "led ili para","VO_A"},
+            {"knjiga",    "papir",     "pisanje",           "biblioteka","Gutenberg",        "ucenje",            "autor",       "KNJ_GA"}
     };
 
     // UI
@@ -41,31 +54,35 @@ public class KorakPoKorakActivity extends AppCompatActivity {
     private TextInputEditText etGuess;
     private MaterialButton btnGuess, btnPredaj, btnFinish;
 
-    // Stanje igre
     private List<Korak> koraci;
     private KorakAdapter adapter;
     private String correctAnswer;
-    private int openedSteps = 0;      // koliko je koraka otvoreno
+    private int openedSteps = 0;
     private boolean roundActive = false;
     private boolean bonusPhase = false;
 
-    // Timeri
     private CountDownTimer roundTimer;
     private CountDownTimer bonusTimer;
 
-    // Runde i bodovi
     private int currentRound = 1;
-    private int myTotalScore  = 0;  // bodovi samo za ovu igru (prikaz)
+    private int myTotalScore  = 0;
     private int oppTotalScore = 0;
-    private int prevMyScore   = 0;  // kumulativ iz prethodnih igara
+    private int prevMyScore   = 0;
     private int prevOppScore  = 0;
 
-    // Match parametri
     private boolean isPlayer1, isGuest;
     private String matchId, myId, opponentId;
 
     private final Random random = new Random();
     private final Handler handler = new Handler();
+
+    // ── Multiplayer (NOVO) ──────────────────────────────────────────────────
+    private DatabaseReference matchRef;
+    private ValueEventListener roundListener;
+    private boolean amIActiveThisRound;
+    private int uiSetupRound = -1;
+    private int timerStartedRound = -1;
+    private boolean myGuessSubmittedThisRound = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -76,13 +93,21 @@ public class KorakPoKorakActivity extends AppCompatActivity {
         isGuest       = getIntent().getBooleanExtra("isGuest", false);
         matchId       = getIntent().getStringExtra("matchId");
         myId          = getIntent().getStringExtra("myId");
-        isFriendly = getIntent().getBooleanExtra("isFriendly", false);
+        isFriendly    = getIntent().getBooleanExtra("isFriendly", false);
         opponentId    = getIntent().getStringExtra("opponentId");
-        prevMyScore  = getIntent().getIntExtra("totalMyScore", 0);
-        prevOppScore = getIntent().getIntExtra("totalOpponentScore", 0);
+        prevMyScore   = getIntent().getIntExtra("totalMyScore", 0);
+        prevOppScore  = getIntent().getIntExtra("totalOpponentScore", 0);
 
         bindViews();
-        startRound(1);
+        refreshScores();
+        updateTopBar();
+
+        if (isGuest || matchId == null) {
+            startSoloRound(1);
+        } else {
+            matchRef = FirebaseDatabase.getInstance().getReference("activeMatches").child(matchId).child("korak");
+            startMultiplayerRound(1);
+        }
     }
 
     private void bindViews() {
@@ -100,57 +125,293 @@ public class KorakPoKorakActivity extends AppCompatActivity {
         rvKoraci.setLayoutManager(new LinearLayoutManager(this));
 
         btnGuess.setOnClickListener(v -> handleGuess());
-
-        btnPredaj.setOnClickListener(v -> {
-            if (!roundActive || bonusPhase) return;
-            stopRoundTimer();
-            roundActive = false;
-            markRemainingAsMissed();
-            boolean iAmActive = isActiveThisRound();
-            if (iAmActive) startOpponentBonusPhase();
-            else           startMyBonusPhase();
-        });
-
+        btnPredaj.setOnClickListener(v -> handlePredaj());
         btnFinish.setOnClickListener(v -> goToMojBroj());
     }
 
-    // ── Upravljanje rundama ────────────────────────────────────────────────────
+    // ══════════════════════════ SOLO/GUEST (nepromenjeno) ══════════════════
 
-    private void startRound(int round) {
+    private void startSoloRound(int round) {
         currentRound = round;
         openedSteps  = 0;
         roundActive  = true;
         bonusPhase   = false;
 
-        // Odaberi slagalicu za ovu rundu (iz PUZZLES niza)
+        loadPuzzle(round);
+        setupGridUI(round, true);
+
+        openNextStep();
+        startSoloRoundTimer();
+    }
+
+    private void startSoloRoundTimer() {
+        stopRoundTimer();
+        pbTime.setMax(70);
+        pbTime.setProgress(70);
+        tvTimer.setText("70");
+
+        roundTimer = new CountDownTimer(70_000, 10_000) {
+            @Override public void onTick(long ms) {
+                int seconds = (int) (ms / 1000);
+                pbTime.setProgress(seconds);
+                tvTimer.setText(String.valueOf(seconds));
+                if (roundActive) openNextStep();
+            }
+            @Override public void onFinish() {
+                pbTime.setProgress(0);
+                tvTimer.setText("0");
+                if (roundActive) {
+                    roundActive = false;
+                    markRemainingAsMissed();
+                    startSoloBonusPhase();
+                }
+            }
+        }.start();
+    }
+
+    private void startSoloBonusPhase() {
+        bonusPhase = true;
+        setInputEnabled(false);
+        tvRunda.setText("Bonus protivnika (simulacija): 10s");
+        startBonusCountdown(() -> {
+            bonusPhase = false;
+            simulateOpponentRoundScore();
+            proceedAfterRound();
+        });
+    }
+
+    private void simulateOpponentRoundScore() {
+        int roll = random.nextInt(3);
+        if (roll == 1) {
+            int stepGuessed = 1 + random.nextInt(7);
+            oppTotalScore += KorakLogic.scoreForStep(stepGuessed);
+            refreshScores();
+        }
+    }
+
+    // ══════════════════════════ MULTIPLAYER (NOVO) ══════════════════════════
+
+    private void startMultiplayerRound(int round) {
+        currentRound = round;
+        amIActiveThisRound = (round == 1) == isPlayer1;
+        myGuessSubmittedThisRound = false;
+        String roundKey = "round" + round;
+
+        if (amIActiveThisRound) {
+            Map<String, Object> data = new HashMap<>();
+            data.put("phase", "active");
+            data.put("startedAt", ServerValue.TIMESTAMP);
+            data.put("activePlayerId", myId);
+            data.put("otherPlayerId", opponentId);
+            matchRef.child(roundKey).removeValue()
+                    .addOnCompleteListener(t ->
+                            matchRef.child(roundKey).setValue(data)
+                                    .addOnFailureListener(e -> showWriteError("roundInit", e)));
+        }
+        listenToRound(roundKey);
+    }
+
+    private void listenToRound(String roundKey) {
+        if (roundListener != null) matchRef.child(roundKey).removeEventListener(roundListener);
+        roundListener = new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot snap) {
+                onRoundSnapshot(snap);
+            }
+            @Override
+            public void onCancelled(DatabaseError error) {}
+        };
+        matchRef.child(roundKey).addValueEventListener(roundListener);
+    }
+
+    private void onRoundSnapshot(DataSnapshot snap) {
+        if (!snap.exists()) return;
+        Long startedAt = snap.child("startedAt").getValue(Long.class);
+        if (startedAt == null) return; // jos nije inicijalizovano
+
+        String phase = snap.child("phase").getValue(String.class);
+        String activePlayerId = snap.child("activePlayerId").getValue(String.class);
+        boolean iAmActive = myId.equals(activePlayerId);
+
+        if (uiSetupRound != currentRound) {
+            uiSetupRound = currentRound;
+            loadPuzzle(currentRound);
+            setupGridUI(currentRound, iAmActive);
+        }
+
+        if ("active".equals(phase)) {
+            roundActive = true;
+            bonusPhase = false;
+            if (timerStartedRound != currentRound) {
+                timerStartedRound = currentRound;
+                startSyncedActiveTimer(startedAt, iAmActive);
+            }
+            setInputEnabled(iAmActive);
+            tvRunda.setText("Runda " + currentRound + "/2 " + (iAmActive ? "(Tvoj red)" : "(Protivnik pogađa...)"));
+        } else if ("bonus".equals(phase)) {
+            stopRoundTimer();
+            roundActive = false;
+            if (!bonusPhase) {
+                bonusPhase = true;
+                Long bonusStartedAt = snap.child("bonusStartedAt").getValue(Long.class);
+                if (bonusStartedAt != null) startSyncedBonusTimer(bonusStartedAt, !iAmActive);
+            }
+            if (iAmActive) {
+                tvRunda.setText("Promašio si! Protivnik ima 10s za bonus.");
+                setInputEnabled(false);
+            } else {
+                tvRunda.setText("Bonus! 10 sekundi za " + KorakLogic.BONUS_SCORE + " poena!");
+                setInputEnabled(true);
+            }
+        } else if ("done".equals(phase)) {
+            stopRoundTimer();
+            stopBonusTimer();
+            if (roundActive || bonusPhase) {
+                roundActive = false;
+                bonusPhase = false;
+                applyRoundScoresAndProceed(snap);
+            }
+        }
+    }
+
+    private void startSyncedActiveTimer(long startedAt, boolean iAmActive) {
+        stopRoundTimer();
+        long elapsed = System.currentTimeMillis() - startedAt;
+        long remaining = KorakLogic.ROUND_TIME_MS - elapsed;
+        if (remaining < 0) remaining = 0;
+
+        // Catch-up: odmah prikazi korake koji su vec "trebali" biti otvoreni
+        openedSteps = KorakLogic.openedStepsFromElapsed(Math.max(0, elapsed));
+        revealStepsUpTo(openedSteps);
+
+        pbTime.setMax(70);
+        pbTime.setProgress((int) (remaining / 1000));
+        tvTimer.setText(String.valueOf(remaining / 1000));
+
+        roundTimer = new CountDownTimer(remaining, 500) {
+            @Override public void onTick(long ms) {
+                long el = System.currentTimeMillis() - startedAt;
+                int steps = KorakLogic.openedStepsFromElapsed(el);
+                if (steps != openedSteps) {
+                    openedSteps = steps;
+                    revealStepsUpTo(openedSteps);
+                }
+                int secLeft = (int) (ms / 1000);
+                pbTime.setProgress(secLeft);
+                tvTimer.setText(String.valueOf(secLeft));
+            }
+            @Override public void onFinish() {
+                pbTime.setProgress(0);
+                tvTimer.setText("0");
+                markRemainingAsMissed();
+                // SAMO aktivni igrac (ciji je tajmer ovo) pise tranziciju u bazu,
+                // da ne dodje do duplog pisanja od oba klijenta istovremeno.
+                if (iAmActive && !myGuessSubmittedThisRound) {
+                    transitionToBonusPhase();
+                }
+            }
+        }.start();
+    }
+
+    private void startSyncedBonusTimer(long bonusStartedAt, boolean iAmBonusPlayer) {
+        stopBonusTimer();
+        long elapsed = System.currentTimeMillis() - bonusStartedAt;
+        long remaining = KorakLogic.BONUS_TIME_MS - elapsed;
+        if (remaining < 0) remaining = 0;
+
+        pbTime.setMax(10);
+        pbTime.setProgress((int) (remaining / 1000));
+        tvTimer.setText(String.valueOf(remaining / 1000));
+
+        bonusTimer = new CountDownTimer(remaining, 500) {
+            @Override public void onTick(long ms) {
+                int s = (int) (ms / 1000);
+                pbTime.setProgress(s);
+                tvTimer.setText(String.valueOf(s));
+            }
+            @Override public void onFinish() {
+                pbTime.setProgress(0);
+                tvTimer.setText("0");
+                // SAMO bonus igrac pise "done" ako nije vec pogodio
+                if (iAmBonusPlayer && !myGuessSubmittedThisRound) {
+                    transitionToDone(false);
+                }
+            }
+        }.start();
+    }
+
+    private void transitionToBonusPhase() {
+        String roundKey = "round" + currentRound;
+        Map<String, Object> update = new HashMap<>();
+        update.put("phase", "bonus");
+        update.put("bonusStartedAt", ServerValue.TIMESTAMP);
+        matchRef.child(roundKey).updateChildren(update)
+                .addOnFailureListener(e -> showWriteError("phase=bonus", e));
+    }
+
+    private void transitionToDone(boolean bonusCorrect) {
+        String roundKey = "round" + currentRound;
+        Map<String, Object> update = new HashMap<>();
+        update.put("phase", "done");
+        if (bonusCorrect) update.put("bonusScore", KorakLogic.BONUS_SCORE);
+        matchRef.child(roundKey).updateChildren(update)
+                .addOnFailureListener(e -> showWriteError("phase=done", e));
+    }
+
+    private void applyRoundScoresAndProceed(DataSnapshot snap) {
+        Integer activeScore = snap.child("activeScore").getValue(Integer.class);
+        Integer bonusScore  = snap.child("bonusScore").getValue(Integer.class);
+        String activePlayerId = snap.child("activePlayerId").getValue(String.class);
+        boolean iWasActive = myId.equals(activePlayerId);
+
+        int myPts  = iWasActive ? (activeScore != null ? activeScore : 0) : (bonusScore != null ? bonusScore : 0);
+        int oppPts = iWasActive ? (bonusScore != null ? bonusScore : 0) : (activeScore != null ? activeScore : 0);
+
+        myTotalScore  += myPts;
+        oppTotalScore += oppPts;
+        refreshScores();
+
+        if (roundListener != null) matchRef.child("round" + currentRound).removeEventListener(roundListener);
+        roundListener = null;
+
+        proceedAfterRound();
+    }
+
+    // ══════════════════════════ Zajedničko ══════════════════════════════════
+
+    private void loadPuzzle(int round) {
         int puzzleIndex = (round - 1) % PUZZLES.length;
         String[] puzzle = PUZZLES[puzzleIndex];
-        correctAnswer   = puzzle[0];
+        correctAnswer = puzzle[0];
 
-        // Napravi listu koraka
         koraci = new ArrayList<>();
         for (int i = 1; i <= 7; i++) {
             koraci.add(new Korak(i, puzzle[i], KorakState.ZAKLJUCAN));
         }
         adapter = new KorakAdapter(koraci);
         rvKoraci.setAdapter(adapter);
+    }
 
+    private void setupGridUI(int round, boolean inputEnabledNow) {
+        openedSteps = 0;
+        roundActive = true;
+        bonusPhase = false;
+        myGuessSubmittedThisRound = false;
         tvRunda.setText("Runda " + round + "/2");
         etGuess.setText("");
         refreshScores();
-
-        boolean iAmActive = isActiveThisRound();
-        setInputEnabled(iAmActive);
-
-        // Odmah otvori prvi korak
-        openNextStep();
-        startRoundTimer();
+        setInputEnabled(inputEnabledNow);
+        revealStepsUpTo(1); // prvi korak odmah otvoren
     }
 
-    private boolean isActiveThisRound() {
-        // U guest/solo modu oba igraca je isti korisnik — uvek aktivan
-        if (isGuest || matchId == null) return true;
-        return (currentRound == 1) == isPlayer1;
+    private void revealStepsUpTo(int count) {
+        for (int i = 0; i < koraci.size(); i++) {
+            if (i < count && koraci.get(i).getState() == KorakState.ZAKLJUCAN) {
+                koraci.get(i).setState(KorakState.OTVOREN);
+                adapter.notifyItemChanged(i);
+            }
+        }
+        openedSteps = count;
     }
 
     private void openNextStep() {
@@ -161,182 +422,117 @@ public class KorakPoKorakActivity extends AppCompatActivity {
         }
     }
 
-    // ── Timer runde (70s, svaki korak se otvara na 10s) ───────────────────────
-
-    private void startRoundTimer() {
-        stopRoundTimer();
-        pbTime.setMax(70);
-        pbTime.setProgress(70);
-        tvTimer.setText("70");
-
-        roundTimer = new CountDownTimer(70_000, 10_000) {
-            @Override
-            public void onTick(long ms) {
-                int seconds = (int) (ms / 1000);
-                pbTime.setProgress(seconds);
-                tvTimer.setText(String.valueOf(seconds));
-                if (roundActive) openNextStep();
-            }
-
-            @Override
-            public void onFinish() {
-                pbTime.setProgress(0);
-                tvTimer.setText("0");
-                if (roundActive) {
-                    roundActive = false;
-                    markRemainingAsMissed();
-                    boolean iAmActive = isActiveThisRound();
-                    if (iAmActive) startOpponentBonusPhase();
-                    else           startMyBonusPhase();
-                }
-            }
-        }.start();
-    }
-
-    private void stopRoundTimer() {
-        if (roundTimer != null) {
-            roundTimer.cancel();
-            roundTimer = null;
-        }
-    }
-
-    // ── Provera odgovora ───────────────────────────────────────────────────────
-
     private void handleGuess() {
-        if (bonusPhase) {
-            handleBonusGuess();
-            return;
+        if (matchRef != null) {
+            handleMultiplayerGuess();
+        } else {
+            handleSoloGuess();
         }
-        if (!roundActive || !isActiveThisRound()) return;
+    }
 
-        String guess = etGuess.getText() != null
-                ? etGuess.getText().toString().trim()
-                : "";
-        if (guess.isEmpty()) {
-            Toast.makeText(this, "Unesite odgovor!", Toast.LENGTH_SHORT).show();
-            return;
-        }
+    private void handleSoloGuess() {
+        if (bonusPhase) { handleSoloBonusGuess(); return; }
+        if (!roundActive) return;
+
+        String guess = etGuess.getText() != null ? etGuess.getText().toString().trim() : "";
+        if (guess.isEmpty()) { Toast.makeText(this, "Unesite odgovor!", Toast.LENGTH_SHORT).show(); return; }
 
         if (guess.equalsIgnoreCase(correctAnswer)) {
-            // Bodovi: korak 1 = 20, korak 2 = 18, ..., korak 7 = 8
-            int score = Math.max(0, 20 - 2 * (openedSteps - 1));
-
+            int score = KorakLogic.scoreForStep(openedSteps);
             stopRoundTimer();
             roundActive = false;
-
-            // Označi poslednji otvoreni korak kao pogođen
-            int hitIndex = openedSteps - 1;
-            if (hitIndex >= 0 && hitIndex < koraci.size()) {
-                koraci.get(hitIndex).setState(KorakState.POGODJEN);
-                adapter.notifyItemChanged(hitIndex);
-            }
-
+            markStepHit();
             myTotalScore += score;
             refreshScores();
-
-            Toast.makeText(this,
-                    "Tačno! +" + score + " bodova (korak " + openedSteps + ")",
-                    Toast.LENGTH_LONG).show();
-
+            Toast.makeText(this, "Tačno! +" + score + " bodova", Toast.LENGTH_LONG).show();
             setInputEnabled(false);
-            handler.postDelayed(this::proceedToNextRound, 2000);
+            handler.postDelayed(this::proceedAfterRound, 2000);
         } else {
             Toast.makeText(this, "Netačno, pokušajte ponovo!", Toast.LENGTH_SHORT).show();
         }
     }
 
-    // ── Bonus faza ─────────────────────────────────────────────────────────────
-
-    // Protivnik dobija 10 sekundi da osvoji 5 bonus bodova
-    private void startOpponentBonusPhase() {
-        bonusPhase = true;
-        setInputEnabled(false);
-        tvRunda.setText("Protivnik: 10 sekundi za 5 poena");
-        startBonusCountdown(() -> {
-            bonusPhase = false;
-            // Solo/guest mod: simuliraj da protivnik ne pogađa (uvek 0 bonus)
-            proceedToNextRound();
-        });
-    }
-
-    // Simuliraj rezultat protivnika za rundu u kojoj on igra (solo mod)
-    private void simulateOpponentRoundScore() {
-        if (!isGuest && matchId != null) return; // samo u solo/guest modu
-        // Protivnik nasumično pogađa na koraku 1-7 ili propušta
-        int roll = new Random().nextInt(3); // 0=promaši, 1=pogodi na slučajnom koraku, 2=promaši
-        if (roll == 1) {
-            int stepGuessed = new Random().nextInt(7); // 0..6
-            int score = Math.max(0, 20 - 2 * stepGuessed);
-            oppTotalScore += score;
-            refreshScores();
-        }
-    }
-
-    // Ja dobijam 10 sekundi da osvoji 5 bonus bodova (protivnikova runda propala)
-    private void startMyBonusPhase() {
-        bonusPhase = true;
-        setInputEnabled(true);
-        tvRunda.setText("Bonus! 10 sekundi za 5 poena");
-        etGuess.setText("");
-        startBonusCountdown(() -> {
-            bonusPhase = false;
-            setInputEnabled(false);
-            proceedToNextRound();
-        });
-    }
-
-    private void startBonusCountdown(Runnable onFinished) {
-        stopBonusTimer();
-        pbTime.setMax(10);
-        pbTime.setProgress(10);
-        tvTimer.setText("10");
-
-        bonusTimer = new CountDownTimer(10_000, 1_000) {
-            @Override
-            public void onTick(long ms) {
-                int s = (int) (ms / 1000);
-                pbTime.setProgress(s);
-                tvTimer.setText(String.valueOf(s));
-            }
-
-            @Override
-            public void onFinish() {
-                pbTime.setProgress(0);
-                tvTimer.setText("0");
-                onFinished.run();
-            }
-        }.start();
-    }
-
-    private void handleBonusGuess() {
-        String guess = etGuess.getText() != null
-                ? etGuess.getText().toString().trim()
-                : "";
+    private void handleSoloBonusGuess() {
+        String guess = etGuess.getText() != null ? etGuess.getText().toString().trim() : "";
         if (guess.isEmpty()) return;
-
         if (guess.equalsIgnoreCase(correctAnswer)) {
             stopBonusTimer();
             bonusPhase = false;
             setInputEnabled(false);
-
-            myTotalScore += 5;
+            myTotalScore += KorakLogic.BONUS_SCORE;
             refreshScores();
-
             Toast.makeText(this, "Tačno! +5 bonus poena!", Toast.LENGTH_SHORT).show();
-            handler.postDelayed(this::proceedToNextRound, 1500);
+            handler.postDelayed(this::proceedAfterRound, 1500);
         } else {
             Toast.makeText(this, "Netačno!", Toast.LENGTH_SHORT).show();
         }
     }
 
-    private void stopBonusTimer() {
-        if (bonusTimer != null) {
-            bonusTimer.cancel();
-            bonusTimer = null;
+    private void handleMultiplayerGuess() {
+        String guess = etGuess.getText() != null ? etGuess.getText().toString().trim() : "";
+        if (guess.isEmpty()) { Toast.makeText(this, "Unesite odgovor!", Toast.LENGTH_SHORT).show(); return; }
+        if (myGuessSubmittedThisRound) return;
+
+        boolean correct = guess.equalsIgnoreCase(correctAnswer);
+        String roundKey = "round" + currentRound;
+
+        if (roundActive) {
+            // Aktivna faza - samo aktivni igrac sme da pogadja
+            if (!correct) { Toast.makeText(this, "Netačno, pokušajte ponovo!", Toast.LENGTH_SHORT).show(); return; }
+            myGuessSubmittedThisRound = true;
+            stopRoundTimer();
+            markStepHit();
+            int score = KorakLogic.scoreForStep(openedSteps);
+            setInputEnabled(false);
+            Map<String, Object> update = new HashMap<>();
+            update.put("phase", "done");
+            update.put("activeScore", score);
+            matchRef.child(roundKey).updateChildren(update)
+                    .addOnFailureListener(e -> showWriteError("activeGuess", e));
+        } else if (bonusPhase) {
+            myGuessSubmittedThisRound = true;
+            stopBonusTimer();
+            setInputEnabled(false);
+            if (correct) {
+                Toast.makeText(this, "Tačno! +5 bonus poena!", Toast.LENGTH_SHORT).show();
+                transitionToDone(true);
+            } else {
+                Toast.makeText(this, "Netačno!", Toast.LENGTH_SHORT).show();
+                transitionToDone(false);
+            }
+        }
+        etGuess.setText("");
+    }
+
+    private void handlePredaj() {
+        if (matchRef != null) {
+            if (roundActive && !myGuessSubmittedThisRound) {
+                stopRoundTimer();
+                markRemainingAsMissed();
+                myGuessSubmittedThisRound = true; // ja necu vise pogadjati
+                String roundKey = "round" + currentRound;
+                Map<String, Object> update = new HashMap<>();
+                update.put("phase", "bonus");
+                update.put("bonusStartedAt", ServerValue.TIMESTAMP);
+                matchRef.child(roundKey).updateChildren(update)
+                        .addOnFailureListener(e -> showWriteError("predaj", e));
+            }
+        } else {
+            if (!roundActive || bonusPhase) return;
+            stopRoundTimer();
+            roundActive = false;
+            markRemainingAsMissed();
+            startSoloBonusPhase();
         }
     }
 
-    // ── Kraj runde / igre ──────────────────────────────────────────────────────
+    private void markStepHit() {
+        int hitIndex = openedSteps - 1;
+        if (hitIndex >= 0 && hitIndex < koraci.size()) {
+            koraci.get(hitIndex).setState(KorakState.POGODJEN);
+            adapter.notifyItemChanged(hitIndex);
+        }
+    }
 
     private void markRemainingAsMissed() {
         for (Korak k : koraci) {
@@ -347,11 +543,32 @@ public class KorakPoKorakActivity extends AppCompatActivity {
         adapter.notifyDataSetChanged();
     }
 
-    private void proceedToNextRound() {
+    private void startBonusCountdown(Runnable onFinished) {
+        stopBonusTimer();
+        pbTime.setMax(10);
+        pbTime.setProgress(10);
+        tvTimer.setText("10");
+        bonusTimer = new CountDownTimer(10_000, 1_000) {
+            @Override public void onTick(long ms) {
+                int s = (int) (ms / 1000);
+                pbTime.setProgress(s);
+                tvTimer.setText(String.valueOf(s));
+            }
+            @Override public void onFinish() {
+                pbTime.setProgress(0);
+                tvTimer.setText("0");
+                onFinished.run();
+            }
+        }.start();
+    }
+
+    private void proceedAfterRound() {
         if (currentRound < 2) {
-            // Simuliraj protivnikov rezultat za rundu 2 (on "igra" tu rundu u pravom mul.)
-            simulateOpponentRoundScore();
-            handler.postDelayed(() -> startRound(2), 1000);
+            int next = currentRound + 1;
+            handler.postDelayed(() -> {
+                if (matchRef != null) startMultiplayerRound(next);
+                else startSoloRound(next);
+            }, 1500);
         } else {
             endGame();
         }
@@ -362,9 +579,7 @@ public class KorakPoKorakActivity extends AppCompatActivity {
         btnFinish.setVisibility(View.VISIBLE);
         btnPredaj.setEnabled(false);
         tvRunda.setText("Kraj igre! Skor: " + myTotalScore);
-        Toast.makeText(this,
-                "Korak po korak završen! Ukupno: " + myTotalScore,
-                Toast.LENGTH_LONG).show();
+        Toast.makeText(this, "Korak po korak završen! Ukupno: " + myTotalScore, Toast.LENGTH_LONG).show();
     }
 
     private void goToMojBroj() {
@@ -383,16 +598,61 @@ public class KorakPoKorakActivity extends AppCompatActivity {
         finish();
     }
 
-    // ── UI pomoćnici ───────────────────────────────────────────────────────────
-
     private void setInputEnabled(boolean enabled) {
         etGuess.setEnabled(enabled);
         btnGuess.setEnabled(enabled);
     }
 
     private void refreshScores() {
-        tvMyScore.setText(String.valueOf(myTotalScore));
-        tvOppScore.setText(String.valueOf(oppTotalScore));
+        tvMyScore.setText(String.valueOf(prevMyScore + myTotalScore));
+        tvOppScore.setText(String.valueOf(prevOppScore + oppTotalScore));
+    }
+
+    private void updateTopBar() {
+        TextView tvTokens = findViewById(R.id.tvTokens);
+        TextView tvStars  = findViewById(R.id.tvStars);
+        TextView tvLeague = findViewById(R.id.tvLeague);
+
+        if (isGuest) {
+            if (tvTokens != null) tvTokens.setText("0");
+            if (tvStars  != null) tvStars.setText("0");
+            if (tvLeague != null) tvLeague.setText("🏆");
+            return;
+        }
+
+        new UserRepository().getCurrentUser(new UserRepository.Callback<User>() {
+            @Override
+            public void onSuccess(User user) {
+                if (user != null) {
+                    if (tvTokens != null) tvTokens.setText(String.valueOf(user.getTokens()));
+                    if (tvStars  != null) tvStars.setText(String.valueOf(user.getStars()));
+                    int league = LeagueLogic.calculateLeague(user.getStars());
+                    if (tvLeague != null) {
+                        tvLeague.setText(LeagueLogic.getLeagueIcon(league));
+                        tvLeague.setOnClickListener(v -> showLeagueDialog());
+                    }
+                }
+            }
+            @Override public void onError(Exception e) {}
+        });
+    }
+
+    private void showLeagueDialog() {
+        String[] leagues = {"🏆 Liga 0", "📚 Početnička Liga", "🧠 Školska Liga", "🏛️ Akademska Liga", "👑 Genijalac Liga"};
+        new AlertDialog.Builder(this).setTitle("Lige").setItems(leagues, null).show();
+    }
+
+
+    private void stopRoundTimer() {
+        if (roundTimer != null) { roundTimer.cancel(); roundTimer = null; }
+    }
+
+    private void stopBonusTimer() {
+        if (bonusTimer != null) { bonusTimer.cancel(); bonusTimer = null; }
+    }
+
+    private void showWriteError(String what, Exception e) {
+        Toast.makeText(this, "Write error (" + what + "): " + e.getMessage(), Toast.LENGTH_LONG).show();
     }
 
     @Override
@@ -400,6 +660,9 @@ public class KorakPoKorakActivity extends AppCompatActivity {
         stopRoundTimer();
         stopBonusTimer();
         handler.removeCallbacksAndMessages(null);
+        if (roundListener != null && matchRef != null) {
+            matchRef.child("round" + currentRound).removeEventListener(roundListener);
+        }
         super.onDestroy();
     }
 }

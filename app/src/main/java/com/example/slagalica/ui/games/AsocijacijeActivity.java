@@ -42,6 +42,7 @@ public class AsocijacijeActivity extends AppCompatActivity {
     private TextView[][] tvFields;
     private TextView[] tvColSolution;
     private CardView cardFinalSolution;
+    private boolean isFriendly;
     private TextInputEditText etAnswer;
     private MaterialButton btnPass, btnLeave;
 
@@ -92,7 +93,7 @@ public class AsocijacijeActivity extends AppCompatActivity {
         myId       = getIntent().getStringExtra("myId");
         opponentId = getIntent().getStringExtra("opponentId");
         isPlayer1  = getIntent().getBooleanExtra("isPlayer1", true);
-
+        isFriendly = getIntent().getBooleanExtra("isFriendly", false);
         myScoreTotal  = getIntent().getIntExtra("totalMyScore", 0);
         oppScoreTotal = getIntent().getIntExtra("totalOpponentScore", 0);
 
@@ -601,6 +602,7 @@ public class AsocijacijeActivity extends AppCompatActivity {
         intent.putExtra("myId", myId);
         intent.putExtra("opponentId", opponentId);
         intent.putExtra("isPlayer1", isPlayer1);
+        intent.putExtra("isFriendly", isFriendly);
         intent.putExtra("totalMyScore", myScoreTotal);
         intent.putExtra("totalOpponentScore", oppScoreTotal);
         startActivity(intent);

@@ -19,6 +19,7 @@ public class ResultsActivity extends AppCompatActivity {
 
         // Uzmi podatke iz intenta
         boolean isGuest   = getIntent().getBooleanExtra("isGuest", false);
+        boolean isFriendly = getIntent().getBooleanExtra("isFriendly", false); // NOVO
         int myTotal       = getIntent().getIntExtra("totalMyScore", 0);
         int oppTotal      = getIntent().getIntExtra("totalOpponentScore", 0);
         boolean isLoggedIn = FirebaseAuth.getInstance().getCurrentUser() != null;
@@ -34,20 +35,31 @@ public class ResultsActivity extends AppCompatActivity {
         tvP1Score.setText(String.valueOf(myTotal));
         tvP2Score.setText(String.valueOf(oppTotal));
 
-        // Izračunaj zvezde po specifikaciji
-        int starsChange = calculateStars(iWon, myTotal);
-        if (iWon) {
-            tvStarsEarned.setText("+" + starsChange + " ⭐");
+        if (isFriendly) {
+            // Zahtev 3e - prijateljske partije ne donose/ne oduzimaju zvezde
+            tvStarsEarned.setText("Prijateljska partija - bez zvezda");
         } else {
-            tvStarsEarned.setText(starsChange + " ⭐"); // već je negativan ili 0
+            int starsChange = calculateStars(iWon, myTotal);
+            tvStarsEarned.setText((iWon ? "+" : "") + starsChange + " ⭐");
         }
 
-        // Upiši statistiku i ažuriraj zvezde (samo za registrovane, ne gost)
         if (!isGuest && isLoggedIn) {
-            saveResults(iWon, myTotal, starsChange);
+            if (isFriendly) {
+                // Samo otkacujemo dnevnu misiju "odigraj prijateljsku partiju", NISTA drugo
+                String uid = FirebaseAuth.getInstance().getUid();
+                if (uid != null) {
+                    new com.example.slagalica.data.repository.MissionRepository()
+                            .completeMission(uid, "friendlyMatch", new com.example.slagalica.data.repository.MissionRepository.Callback<Void>() {
+                                @Override public void onSuccess(Void r) {}
+                                @Override public void onError(Exception e) {}
+                            });
+                }
+            } else {
+                int starsChange = calculateStars(iWon, myTotal);
+                saveResults(iWon, myTotal, starsChange);
+            }
         }
 
-        // Dugme za povratak
         ((MaterialButton) findViewById(R.id.btnHome)).setOnClickListener(v -> {
             Intent intent = isGuest
                     ? new Intent(this, GuestActivity.class)
@@ -87,6 +99,13 @@ public class ResultsActivity extends AppCompatActivity {
         userRepo.getCurrentUser(new UserRepository.Callback<com.example.slagalica.data.model.User>() {
             @Override
             public void onSuccess(com.example.slagalica.data.model.User user) {
+                if (won) {
+                    new com.example.slagalica.data.repository.MissionRepository()
+                            .completeMission(user.getId(), "winMatch", new com.example.slagalica.data.repository.MissionRepository.Callback<Void>() {
+                                @Override public void onSuccess(Void r) {}
+                                @Override public void onError(Exception e) {}
+                            });
+                }
                 int currentStars = user.getStars();
                 int newStars = Math.max(0, currentStars + starsChange); // ne može ispod 0
 
@@ -97,9 +116,27 @@ public class ResultsActivity extends AppCompatActivity {
                 // Samo ako je starsChange pozitivan (pobeda ili bonus)
                 int tokenBonus = Math.max(0, tokensFromStars);
 
+                int finalNewStars = newStars; // effectively final za lambdu ispod
+
                 userRepo.updateField("stars", newStars,
                         new UserRepository.Callback<Void>() {
-                            @Override public void onSuccess(Void r) {}
+                            @Override
+                            public void onSuccess(Void r) {
+                                // Regionalna statistika - samo POZITIVNE zvezde idu u mesečni ciklus regiona
+                                if (starsChange > 0 && user.getRegion() != null) {
+                                    new com.example.slagalica.data.repository.RegionStatsRepository()
+                                            .addStarsToRegion(user.getRegion(), starsChange,
+                                                    new com.example.slagalica.data.repository.RegionStatsRepository.Callback<Void>() {
+                                                        @Override public void onSuccess(Void r2) {}
+                                                        @Override public void onError(Exception e) {}
+                                                    });
+                                }
+
+                                // NOVO - licna ciklusna rang lista (nedeljna/mesecna), zahtev 4a/4b
+                                int leagueAtTimeOfMatch = com.example.slagalica.logic.LeagueLogic.calculateLeague(newStars);
+                                new com.example.slagalica.data.repository.CycleLeaderboardRepository()
+                                        .recordMatch(user.getId(), user.getUsername(), leagueAtTimeOfMatch, starsChange);
+                            }
                             @Override public void onError(Exception e) {}
                         });
 

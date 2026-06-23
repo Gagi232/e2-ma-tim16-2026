@@ -13,6 +13,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import com.example.slagalica.R;
 import com.example.slagalica.data.model.User;
 import com.example.slagalica.data.repository.UserRepository;
+import com.example.slagalica.util.RegionUtil;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.firebase.auth.FirebaseAuth;
@@ -98,6 +99,12 @@ public class RegisterActivity extends AppCompatActivity {
                     user.setStars(0);
                     user.setLeague(0);
                     user.setAvatarUrl("");
+
+                    // Nasumična tačka unutar regiona — generiše se SAMO ovde, jednom, trajno se čuva
+                    RegionUtil.Region regionEnum = RegionUtil.Region.fromNaziv(region);
+                    double[] point = RegionUtil.randomPointIn(regionEnum);
+                    user.setRegionLat(point[0]);
+                    user.setRegionLng(point[1]);
 
                     userRepo.saveUser(user, new UserRepository.Callback<Void>() {
                         @Override

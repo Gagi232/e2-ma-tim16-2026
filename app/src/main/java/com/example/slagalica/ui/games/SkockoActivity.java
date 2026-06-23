@@ -69,6 +69,7 @@ public class SkockoActivity extends AppCompatActivity {
     private boolean isMyTurn = false;
     private boolean isOpponentChance = false;
 
+    private boolean isFriendly;
     // FIX: pratimo za koju rundu je UI (grid, dugmad...) već inicijalizovan —
     // ne pogađamo to iz identiteta `combo` objekta. Igrač koji POKREĆE rundu već ima
     // `combo` lokalno postavljen PRE nego što mu stigne echo iz baze, pa stara provera
@@ -92,7 +93,7 @@ public class SkockoActivity extends AppCompatActivity {
         myId       = getIntent().getStringExtra("myId");
         opponentId = getIntent().getStringExtra("opponentId");
         isPlayer1  = getIntent().getBooleanExtra("isPlayer1", true);
-
+        isFriendly = getIntent().getBooleanExtra("isFriendly", false);
         myScoreTotal  = getIntent().getIntExtra("totalMyScore", 0);
         oppScoreTotal = getIntent().getIntExtra("totalOpponentScore", 0);
 
@@ -568,6 +569,7 @@ public class SkockoActivity extends AppCompatActivity {
         Intent i = new Intent(this, KorakPoKorakActivity.class);
         i.putExtra("isGuest", isGuest); i.putExtra("matchId", matchId); i.putExtra("myId", myId);
         i.putExtra("opponentId", opponentId); i.putExtra("isPlayer1", isPlayer1);
+        i.putExtra("isFriendly", isFriendly); // NOVO
         i.putExtra("totalMyScore", myScoreTotal); i.putExtra("totalOpponentScore", oppScoreTotal);
         startActivity(i); finish();
     }

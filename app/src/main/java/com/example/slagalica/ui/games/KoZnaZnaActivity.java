@@ -49,6 +49,8 @@ public class KoZnaZnaActivity extends AppCompatActivity {
     private boolean answered = false;
     private CountDownTimer timer;
 
+    private boolean isFriendly;
+
     private String matchId, myId, opponentId;
     private boolean isPlayer1, isGuest;
     private int correctCount = 0, wrongCount = 0;
@@ -72,6 +74,8 @@ public class KoZnaZnaActivity extends AppCompatActivity {
         myId       = getIntent().getStringExtra("myId");
         opponentId = getIntent().getStringExtra("opponentId");
         isPlayer1  = getIntent().getBooleanExtra("isPlayer1", true);
+        isFriendly = getIntent().getBooleanExtra("isFriendly", false); // NOVO - default false (random/rangirano)
+
 
         if (myId == null && !isGuest) {
             var fbUser = com.google.firebase.auth.FirebaseAuth.getInstance().getCurrentUser();
@@ -374,15 +378,21 @@ public class KoZnaZnaActivity extends AppCompatActivity {
             matchRef.child("finalScore").child(myId).setValue(myScore);
             matchRef.child("done").child(myId).setValue(true);
         }
-        new StatsRepository().saveKoZnaZnaResult(correctCount, wrongCount, myScore, new StatsRepository.Callback<Void>() {
-            @Override public void onSuccess(Void r) {}
-            @Override public void onError(Exception e) {}
-        });
+
+        if (!isFriendly) {
+            new StatsRepository().saveKoZnaZnaResult(correctCount, wrongCount, myScore, new StatsRepository.Callback<Void>() {
+                @Override public void onSuccess(Void r) {}
+                @Override public void onError(Exception e) {}
+            });
+        }
+
+
 
         Intent i = new Intent(this, SpojniceActivity.class);
         i.putExtra("isGuest", isGuest); i.putExtra("matchId", matchId);
         i.putExtra("myId", myId); i.putExtra("opponentId", opponentId);
         i.putExtra("isPlayer1", isPlayer1);
+        i.putExtra("isFriendly", isFriendly); // NOVO - prosledi dalje
         i.putExtra("kzzMyScore", myScore); i.putExtra("kzzOpponentScore", opponentScore);
         startActivity(i); finish();
     }

@@ -35,6 +35,9 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import androidx.activity.result.ActivityResultLauncher;
+import com.journeyapps.barcodescanner.ScanContract;
+import com.journeyapps.barcodescanner.ScanOptions;
 
 public class FriendsFragment extends Fragment {
 
@@ -59,9 +62,7 @@ public class FriendsFragment extends Fragment {
         llFriendsList = view.findViewById(R.id.llFriendsList);
 
         MaterialButton btnQrScan = view.findViewById(R.id.btnQrScan);
-        btnQrScan.setOnClickListener(v ->
-                Toast.makeText(getActivity(), "QR skeniranje — dolazi uskoro!", Toast.LENGTH_SHORT).show()
-        );
+        btnQrScan.setOnClickListener(v -> startQrScan());
 
         etSearch.addTextChangedListener(new TextWatcher() {
             @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
@@ -73,6 +74,65 @@ public class FriendsFragment extends Fragment {
 
         loadFriends();
         return view;
+    }
+
+    private void startQrScan() {
+        if (getContext() == null) return;
+
+        if (androidx.core.content.ContextCompat.checkSelfPermission(getContext(), android.Manifest.permission.CAMERA)
+                != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+            requestPermissions(new String[]{android.Manifest.permission.CAMERA}, 200);
+            return;
+        }
+
+        com.journeyapps.barcodescanner.ScanOptions options = new com.journeyapps.barcodescanner.ScanOptions();
+        options.setDesiredBarcodeFormats(com.journeyapps.barcodescanner.ScanOptions.QR_CODE);
+        options.setPrompt("Skenirajte QR kod prijatelja");
+        options.setBeepEnabled(true);
+        options.setOrientationLocked(true);
+        qrLauncher.launch(options);
+    }
+
+    private final androidx.activity.result.ActivityResultLauncher<com.journeyapps.barcodescanner.ScanOptions> qrLauncher =
+            registerForActivityResult(new com.journeyapps.barcodescanner.ScanContract(), result -> {
+                if (result.getContents() == null) {
+                    return; // korisnik je otkazao skeniranje
+                }
+                handleScannedQr(result.getContents());
+            });
+
+    private void handleScannedQr(String content) {
+        String prefix = "slagalica://friend/";
+        if (!content.startsWith(prefix)) {
+            Toast.makeText(getActivity(), "Ovo nije Slagalica QR kod prijatelja.", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        String scannedUid = content.substring(prefix.length());
+
+        if (scannedUid.equals(myUid)) {
+            Toast.makeText(getActivity(), "Ne možete dodati sebe kao prijatelja.", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        userRepo.getUserById(scannedUid, new UserRepository.Callback<User>() {
+            @Override
+            public void onSuccess(User scannedUser) {
+                if (scannedUser == null) {
+                    Toast.makeText(getActivity(), "Korisnik nije pronađen.", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                new AlertDialog.Builder(requireContext())
+                        .setTitle("Dodaj prijatelja")
+                        .setMessage("Dodati " + scannedUser.getUsername() + " kao prijatelja?")
+                        .setPositiveButton("Da", (d, w) -> addFriend(scannedUser))
+                        .setNegativeButton("Ne", null)
+                        .show();
+            }
+            @Override
+            public void onError(Exception e) {
+                Toast.makeText(getActivity(), "Greška: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+            }
+        });
     }
 
     private void searchUsers(String query) {
@@ -146,15 +206,49 @@ public class FriendsFragment extends Fragment {
         }, e -> Toast.makeText(getActivity(), "Greška pri učitavanju", Toast.LENGTH_SHORT).show());
     }
 
+    private interface BusyCallback { void result(boolean isBusy); }
+
+    private void checkIfFriendBusy(User friend, BusyCallback callback) {
+        FirebaseDatabase.getInstance().getReference("activeMatches")
+                .orderByChild("info/player1")
+                .equalTo(friend.getId())
+                .get()
+                .addOnSuccessListener(snap1 -> {
+                    if (snap1.exists()) { callback.result(true); return; }
+                    FirebaseDatabase.getInstance().getReference("activeMatches")
+                            .orderByChild("info/player2")
+                            .equalTo(friend.getId())
+                            .get()
+                            .addOnSuccessListener(snap2 -> callback.result(snap2.exists()))
+                            .addOnFailureListener(e -> callback.result(false)); // ne blokiraj ako padne provera
+                })
+                .addOnFailureListener(e -> callback.result(false));
+    }
+
     private void addFriendCard(User friend) {
         View card = LayoutInflater.from(getActivity()).inflate(R.layout.item_friend, llFriendsList, false);
 
+        String avatar = friend.getAvatarUrl();
+        TextView tvFriendAvatar = card.findViewById(R.id.tvFriendAvatar); // treba dodati ovaj ID u item_friend.xml
+        if (tvFriendAvatar != null) {
+            tvFriendAvatar.setText(avatar != null && !avatar.isEmpty() ? avatar : "👤");
+        }
+
         ((TextView) card.findViewById(R.id.tvFriendName)).setText(friend.getUsername());
-        ((TextView) card.findViewById(R.id.tvFriendLeague)).setText("🏆 Liga " + friend.getLeague() + " · " + friend.getStars() + " ⭐");
+
+        int league = friend.getLeague();
+        String leagueText = com.example.slagalica.logic.LeagueLogic.getLeagueIcon(league) + " "
+                + com.example.slagalica.logic.LeagueLogic.getLeagueName(league)
+                + " · " + friend.getStars() + " ⭐";
+        ((TextView) card.findViewById(R.id.tvFriendLeague)).setText(leagueText);
+
         ((TextView) card.findViewById(R.id.tvFriendStatus)).setText(friend.isOnline() ? "🟢 Online" : "🔴 Offline");
 
         MaterialButton btnPlay = card.findViewById(R.id.btnPlayFriend);
-        btnPlay.setEnabled(friend.isOnline());
+        btnPlay.setEnabled(false); // default disabled dok ne provеримo da nije u partiji
+        checkIfFriendBusy(friend, isBusy -> {
+            btnPlay.setEnabled(friend.isOnline() && !isBusy);
+        });
         btnPlay.setOnClickListener(v -> startMatchInvite(friend));
 
         llFriendsList.addView(card);
@@ -169,6 +263,7 @@ public class FriendsFragment extends Fragment {
         matchData.put("player1", myUid);
         matchData.put("player2", friend.getId());
         matchData.put("status", "pending");
+        matchData.put("isFriendly", true);
 
         FirebaseDatabase.getInstance().getReference("activeMatches")
                 .child(matchId).child("info").setValue(matchData)
@@ -246,6 +341,7 @@ public class FriendsFragment extends Fragment {
                     intent.putExtra("myId", myUid);
                     intent.putExtra("opponentId", opponentId);
                     intent.putExtra("isPlayer1", true);
+                    intent.putExtra("isFriendly", true);
                     startActivity(intent);
                 } else if ("declined".equals(status)) {
                     cleanupMatchListener();

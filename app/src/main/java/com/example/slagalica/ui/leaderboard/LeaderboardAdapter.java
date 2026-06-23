@@ -4,22 +4,19 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
-
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
-
 import com.example.slagalica.R;
-import com.example.slagalica.data.model.LeaderboardEntry;
+import com.example.slagalica.data.model.CycleEntry;
 import com.example.slagalica.logic.LeagueLogic;
-
 import java.util.ArrayList;
 import java.util.List;
 
 public class LeaderboardAdapter extends RecyclerView.Adapter<LeaderboardAdapter.ViewHolder> {
 
-    private List<LeaderboardEntry> entries = new ArrayList<>();
+    private List<CycleEntry> entries = new ArrayList<>();
 
-    public void setEntries(List<LeaderboardEntry> entries) {
+    public void setEntries(List<CycleEntry> entries) {
         this.entries = entries;
         notifyDataSetChanged();
     }
@@ -33,7 +30,7 @@ public class LeaderboardAdapter extends RecyclerView.Adapter<LeaderboardAdapter.
 
     @Override
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
-        LeaderboardEntry entry = entries.get(position);
+        CycleEntry entry = entries.get(position);
         holder.tvRank.setText(String.valueOf(position + 1));
         holder.tvUsername.setText(entry.getUsername());
         holder.tvStars.setText(entry.getStars() + " ⭐");
@@ -41,9 +38,7 @@ public class LeaderboardAdapter extends RecyclerView.Adapter<LeaderboardAdapter.
     }
 
     @Override
-    public int getItemCount() {
-        return entries.size();
-    }
+    public int getItemCount() { return entries.size(); }
 
     static class ViewHolder extends RecyclerView.ViewHolder {
         TextView tvRank, tvUsername, tvStars, tvLeagueIcon;

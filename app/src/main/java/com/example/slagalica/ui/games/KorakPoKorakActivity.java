@@ -34,6 +34,7 @@ public class KorakPoKorakActivity extends AppCompatActivity {
     };
 
     // UI
+    private boolean isFriendly;
     private ProgressBar pbTime;
     private TextView tvTimer, tvMyScore, tvOppScore, tvRunda;
     private RecyclerView rvKoraci;
@@ -75,6 +76,7 @@ public class KorakPoKorakActivity extends AppCompatActivity {
         isGuest       = getIntent().getBooleanExtra("isGuest", false);
         matchId       = getIntent().getStringExtra("matchId");
         myId          = getIntent().getStringExtra("myId");
+        isFriendly = getIntent().getBooleanExtra("isFriendly", false);
         opponentId    = getIntent().getStringExtra("opponentId");
         prevMyScore  = getIntent().getIntExtra("totalMyScore", 0);
         prevOppScore = getIntent().getIntExtra("totalOpponentScore", 0);
@@ -374,6 +376,7 @@ public class KorakPoKorakActivity extends AppCompatActivity {
         intent.putExtra("myId",               myId);
         intent.putExtra("opponentId",         opponentId);
         intent.putExtra("isPlayer1",          isPlayer1);
+        intent.putExtra("isFriendly",         isFriendly);
         intent.putExtra("totalMyScore",       prevMyScore  + myTotalScore);
         intent.putExtra("totalOpponentScore", prevOppScore + oppTotalScore);
         startActivity(intent);

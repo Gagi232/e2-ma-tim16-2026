@@ -28,10 +28,8 @@ public class SpojniceActivity extends AppCompatActivity {
     private String  matchId, myId, opponentId;
     private boolean isPlayer1, isGuest;
 
-    // Bodovi samo za ovu igru (Spojnice)
     private int totalMy  = 0;
     private int totalOpp = 0;
-    // Kumulativ iz prethodnih igara — PRIKAZUJEMO ih, ne samo prosleđujemo
     private int prevMy   = 0;
     private int prevOpp  = 0;
 
@@ -49,7 +47,7 @@ public class SpojniceActivity extends AppCompatActivity {
     private int myRoundScore  = 0;
     private int oppRoundScore = 0;
 
-    private CountDownTimer    timer;
+    private CountDownTimer     timer;
     private ValueEventListener phaseListener;
 
     // ── UI ────────────────────────────────────────────────────────────────────
@@ -61,6 +59,8 @@ public class SpojniceActivity extends AppCompatActivity {
     private DatabaseReference matchRef;
 
     private final GameRepository gameRepo = new GameRepository();
+
+    private boolean isFriendly; // NOVO
 
     // ── Lifecycle ─────────────────────────────────────────────────────────────
 
@@ -76,6 +76,7 @@ public class SpojniceActivity extends AppCompatActivity {
         isPlayer1  = getIntent().getBooleanExtra("isPlayer1", true);
         prevMy     = getIntent().getIntExtra("kzzMyScore", 0);
         prevOpp    = getIntent().getIntExtra("kzzOpponentScore", 0);
+        isFriendly = getIntent().getBooleanExtra("isFriendly", false);
 
         initViews();
         updateScoreUI();
@@ -97,7 +98,7 @@ public class SpojniceActivity extends AppCompatActivity {
         removePhaseListener("round" + currentRound);
     }
 
-    // ── Init pogleda ─────────────────────────────────────────────────────────
+    // ── Init pogleda ──────────────────────────────────────────────────────────
 
     private void initViews() {
         tvGameTitle = findViewById(R.id.tvGameTitle);
@@ -133,7 +134,6 @@ public class SpojniceActivity extends AppCompatActivity {
         tvRound.setText("Runda " + round + "/2");
         resetAllColors();
 
-        // Runda 1 → Player1 ide prvi; Runda 2 → Player2 ide prvi
         boolean iGoFirst = (round == 1) ? isPlayer1 : !isPlayer1;
 
         if (isGuest || matchRef == null) {
@@ -241,8 +241,6 @@ public class SpojniceActivity extends AppCompatActivity {
                 }
             }
             @Override public void onCancelled(DatabaseError e) {
-                // Ovo je tačno mesto gde je ranije sve "tiho stajalo" —
-                // sad bar vidiš zašto ako pravila nisu ispravna.
                 showError("Nemam pristup fazi partije: " + e.getMessage());
             }
         };
@@ -264,23 +262,49 @@ public class SpojniceActivity extends AppCompatActivity {
                 });
     }
 
+    /**
+     * FIX: zaključava SAMO tačno spojene parove protivnika (li == pi).
+     * Pogrešni pokušaji se prikazuju narandžasto ali NE zaključavaju par —
+     * drugi igrač može da pokuša isti par ponovo.
+     */
     private void markOppOccupied() {
         for (Map.Entry<Integer, Integer> e : oppConns.entrySet()) {
             int li = e.getKey();
             int pi = e.getValue();
-            int color = (li == pi) ? 0xFF4CAF50 : 0xFFFF9800;
-            leftViews[li].setEnabled(false);
-            leftViews[li].setBackgroundColor(color);
+            boolean correct = (li == pi);
+
+            // Oboji levi element narandžasto (pogrešno) ili zeleno (tačno)
+            leftViews[li].setBackgroundColor(correct ? 0xFF4CAF50 : 0xFFFF9800);
             leftViews[li].setAlpha(0.6f);
+
             for (int i = 0; i < PAIRS; i++) {
                 if (rightPairIdx[i] == pi) {
-                    rightViews[i].setEnabled(false);
-                    rightViews[i].setBackgroundColor(color);
+                    rightViews[i].setBackgroundColor(correct ? 0xFF4CAF50 : 0xFFFF9800);
                     rightViews[i].setAlpha(0.6f);
                     break;
                 }
             }
+
+            // Zaključaj SAMO tačne — pogrešne ostaju klikabilne
+            if (correct) {
+                leftViews[li].setEnabled(false);
+                for (int i = 0; i < PAIRS; i++) {
+                    if (rightPairIdx[i] == pi) {
+                        rightViews[i].setEnabled(false);
+                        break;
+                    }
+                }
+            }
         }
+    }
+
+    /**
+     * Helper: par je zaključan od strane protivnika samo ako ga je TAČNO spojio.
+     * Koristi se u onLeftClicked, onRightClicked i enableAvailableViews.
+     */
+    private boolean isOppLocked(int pairIdx) {
+        Integer v = oppConns.get(pairIdx);
+        return v != null && v == pairIdx;
     }
 
     private void onMyTurnTimeUp() {
@@ -319,7 +343,8 @@ public class SpojniceActivity extends AppCompatActivity {
     // ── Klikovi na pojmove ────────────────────────────────────────────────────
 
     private void onLeftClicked(int leftIdx) {
-        if (!isMyTurn || myConns.containsKey(leftIdx) || oppConns.containsKey(leftIdx)) return;
+        // FIX: blokiraj samo ako je protivnik taj par TAČNO spojio, ne i ako ga je promašio
+        if (!isMyTurn || myConns.containsKey(leftIdx) || isOppLocked(leftIdx)) return;
 
         if (selectedLeft >= 0)
             leftViews[selectedLeft].setBackgroundColor(
@@ -335,7 +360,8 @@ public class SpojniceActivity extends AppCompatActivity {
 
         int pairIdxOfRight = rightPairIdx[rightUiPos];
 
-        if (myConns.containsValue(pairIdxOfRight) || oppConns.containsValue(pairIdxOfRight))
+        // FIX: isto — blokiraj desnu stranu samo ako je protivnik taj pairIdx tačno spojio
+        if (myConns.containsValue(pairIdxOfRight) || isOppLocked(pairIdxOfRight))
             return;
 
         boolean correct = (selectedLeft == pairIdxOfRight);
@@ -348,7 +374,14 @@ public class SpojniceActivity extends AppCompatActivity {
         rightViews[rightUiPos].setEnabled(false);
         selectedLeft = -1;
 
-        if ((myConns.size() + oppConns.size()) >= PAIRS) {
+        // Proveravamo samo tačno spojene parove (my + opp) za kraj
+        int totalCorrect = 0;
+        for (Map.Entry<Integer, Integer> e : myConns.entrySet())
+            if (e.getKey().equals(e.getValue())) totalCorrect++;
+        for (Map.Entry<Integer, Integer> e : oppConns.entrySet())
+            if (e.getKey().equals(e.getValue())) totalCorrect++;
+
+        if (totalCorrect >= PAIRS) {
             if (timer != null) timer.cancel();
             onMyTurnTimeUp();
         }
@@ -426,13 +459,14 @@ public class SpojniceActivity extends AppCompatActivity {
     }
 
     private void enableAvailableViews(boolean enabled) {
+        // FIX: koristi isOppLocked() — pogrešni pokušaji protivnika ne blokiraju prikaz
         for (int i = 0; i < PAIRS; i++) {
-            if (!myConns.containsKey(i) && !oppConns.containsKey(i))
+            if (!myConns.containsKey(i) && !isOppLocked(i))
                 leftViews[i].setEnabled(enabled);
         }
         for (int i = 0; i < PAIRS; i++) {
             int pi = rightPairIdx[i];
-            if (!myConns.containsValue(pi) && !oppConns.containsValue(pi))
+            if (!myConns.containsValue(pi) && !isOppLocked(pi))
                 rightViews[i].setEnabled(enabled);
         }
     }
@@ -457,7 +491,6 @@ public class SpojniceActivity extends AppCompatActivity {
         for (TextView tv : rightViews) if (tv != null) { tv.setBackgroundColor(yellow); tv.setAlpha(1f); }
     }
 
-    /** Prikazujemo KUMULATIV (prethodne igre + ova igra), ne samo Spojnice bodove. */
     private void updateScoreUI() {
         if (tvMyScore  != null) tvMyScore.setText(String.valueOf(prevMy  + totalMy));
         if (tvOppScore != null) tvOppScore.setText(String.valueOf(prevOpp + totalOpp));
@@ -485,6 +518,7 @@ public class SpojniceActivity extends AppCompatActivity {
         intent.putExtra("myId",               myId);
         intent.putExtra("opponentId",         opponentId);
         intent.putExtra("isPlayer1",          isPlayer1);
+        intent.putExtra("isFriendly",         isFriendly); // NOVO
         intent.putExtra("totalMyScore",       prevMy + totalMy);
         intent.putExtra("totalOpponentScore", prevOpp + totalOpp);
         startActivity(intent);

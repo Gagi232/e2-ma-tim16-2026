@@ -22,8 +22,8 @@
     <color name="neutral">#9E9E9E</color>
 
     <!-- Lige -->
-    <color name="gold">#FFD700</color>
-    <color name="silver">#C0C0C0</color>
-    <color name="bronze">#CD7F32</color>
+    <color name="gold_border">#FFD700</color>
+    <color name="silver_border">#C0C0C0</color>
+    <color name="bronze_border">#CD7F32</color>
 
 </resources>

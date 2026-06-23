@@ -12,6 +12,15 @@ public class User {
     private long createdAt;
     private boolean online;
 
+    private double regionLat;
+    private double regionLng;
+
+    public double getRegionLat() { return regionLat; }
+    public void setRegionLat(double regionLat) { this.regionLat = regionLat; }
+
+    public double getRegionLng() { return regionLng; }
+    public void setRegionLng(double regionLng) { this.regionLng = regionLng; }
+
     public User() {}
 
     public User(String id, String username, String email, int tokens,

@@ -54,7 +54,7 @@
                 android:orientation="vertical"
                 android:padding="8dp">
 
-                <!-- Beograd - 1. mesto, tvoj region -->
+                <!-- Beograd -->
                 <LinearLayout
                     android:id="@+id/rowBeograd"
                     android:layout_width="match_parent"
@@ -62,11 +62,8 @@
                     android:orientation="horizontal"
                     android:padding="12dp"
                     android:gravity="center_vertical"
-                    android:background="@color/primary_yellow_light"
                     android:clickable="true"
                     android:focusable="true">
-                    <TextView android:layout_width="28dp" android:layout_height="wrap_content"
-                        android:text="🥇" android:textSize="18sp"/>
                     <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
                         android:text="🏙️" android:textSize="18sp" android:layout_marginEnd="8dp"/>
                     <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
@@ -74,19 +71,22 @@
                         <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
                             android:text="Beograd" android:textSize="15sp" android:textStyle="bold"
                             android:textColor="@color/text_primary"/>
-                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                        <TextView android:id="@+id/badgeBeograd"
+                            android:layout_width="wrap_content" android:layout_height="wrap_content"
                             android:text="← Vaš region" android:textSize="11sp"
-                            android:textColor="@color/primary_green" android:textStyle="bold"/>
+                            android:textColor="@color/primary_green" android:textStyle="bold"
+                            android:visibility="gone"/>
                     </LinearLayout>
-                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                        android:text="312 ⭐" android:textSize="14sp"
+                    <TextView android:id="@+id/tvBeogradZvezde"
+                        android:layout_width="wrap_content" android:layout_height="wrap_content"
+                        android:text="0 ⭐" android:textSize="14sp"
                         android:textColor="@color/primary_yellow_dark" android:textStyle="bold"/>
                 </LinearLayout>
 
                 <View android:layout_width="match_parent" android:layout_height="1dp"
                     android:background="@color/primary_green_light"/>
 
-                <!-- Vojvodina - 2. mesto -->
+                <!-- Vojvodina -->
                 <LinearLayout
                     android:id="@+id/rowVojvodina"
                     android:layout_width="match_parent"
@@ -96,23 +96,29 @@
                     android:gravity="center_vertical"
                     android:clickable="true"
                     android:focusable="true">
-                    <TextView android:layout_width="28dp" android:layout_height="wrap_content"
-                        android:text="🥈" android:textSize="18sp"/>
                     <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
                         android:text="🌾" android:textSize="18sp" android:layout_marginEnd="8dp"/>
-                    <TextView android:layout_width="0dp" android:layout_height="wrap_content"
-                        android:layout_weight="1" android:text="Vojvodina"
-                        android:textSize="15sp" android:textStyle="bold"
-                        android:textColor="@color/text_primary"/>
-                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                        android:text="245 ⭐" android:textSize="13sp"
+                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
+                        android:layout_weight="1" android:orientation="vertical">
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="Vojvodina" android:textSize="15sp" android:textStyle="bold"
+                            android:textColor="@color/text_primary"/>
+                        <TextView android:id="@+id/badgeVojvodina"
+                            android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="← Vaš region" android:textSize="11sp"
+                            android:textColor="@color/primary_green" android:textStyle="bold"
+                            android:visibility="gone"/>
+                    </LinearLayout>
+                    <TextView android:id="@+id/tvVojvodinaZvezde"
+                        android:layout_width="wrap_content" android:layout_height="wrap_content"
+                        android:text="0 ⭐" android:textSize="13sp"
                         android:textColor="@color/text_secondary"/>
                 </LinearLayout>
 
                 <View android:layout_width="match_parent" android:layout_height="1dp"
                     android:background="@color/primary_green_light"/>
 
-                <!-- Šumadija - 3. mesto -->
+                <!-- Šumadija -->
                 <LinearLayout
                     android:id="@+id/rowSumadija"
                     android:layout_width="match_parent"
@@ -122,16 +128,22 @@
                     android:gravity="center_vertical"
                     android:clickable="true"
                     android:focusable="true">
-                    <TextView android:layout_width="28dp" android:layout_height="wrap_content"
-                        android:text="🥉" android:textSize="18sp"/>
                     <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
                         android:text="⛰️" android:textSize="18sp" android:layout_marginEnd="8dp"/>
-                    <TextView android:layout_width="0dp" android:layout_height="wrap_content"
-                        android:layout_weight="1" android:text="Šumadija"
-                        android:textSize="15sp" android:textStyle="bold"
-                        android:textColor="@color/text_primary"/>
-                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                        android:text="178 ⭐" android:textSize="13sp"
+                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
+                        android:layout_weight="1" android:orientation="vertical">
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="Šumadija" android:textSize="15sp" android:textStyle="bold"
+                            android:textColor="@color/text_primary"/>
+                        <TextView android:id="@+id/badgeSumadija"
+                            android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="← Vaš region" android:textSize="11sp"
+                            android:textColor="@color/primary_green" android:textStyle="bold"
+                            android:visibility="gone"/>
+                    </LinearLayout>
+                    <TextView android:id="@+id/tvSumadijaZvezde"
+                        android:layout_width="wrap_content" android:layout_height="wrap_content"
+                        android:text="0 ⭐" android:textSize="13sp"
                         android:textColor="@color/text_secondary"/>
                 </LinearLayout>
 
@@ -148,17 +160,22 @@
                     android:gravity="center_vertical"
                     android:clickable="true"
                     android:focusable="true">
-                    <TextView android:layout_width="28dp" android:layout_height="wrap_content"
-                        android:text="4." android:textSize="13sp"
-                        android:textColor="@color/text_secondary"/>
                     <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
                         android:text="🌲" android:textSize="18sp" android:layout_marginEnd="8dp"/>
-                    <TextView android:layout_width="0dp" android:layout_height="wrap_content"
-                        android:layout_weight="1" android:text="Zapadna Srbija"
-                        android:textSize="15sp" android:textStyle="bold"
-                        android:textColor="@color/text_primary"/>
-                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                        android:text="142 ⭐" android:textSize="13sp"
+                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
+                        android:layout_weight="1" android:orientation="vertical">
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="Zapadna Srbija" android:textSize="15sp" android:textStyle="bold"
+                            android:textColor="@color/text_primary"/>
+                        <TextView android:id="@+id/badgeZapadna"
+                            android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="← Vaš region" android:textSize="11sp"
+                            android:textColor="@color/primary_green" android:textStyle="bold"
+                            android:visibility="gone"/>
+                    </LinearLayout>
+                    <TextView android:id="@+id/tvZapadnaZvezde"
+                        android:layout_width="wrap_content" android:layout_height="wrap_content"
+                        android:text="0 ⭐" android:textSize="13sp"
                         android:textColor="@color/text_secondary"/>
                 </LinearLayout>
 
@@ -175,17 +192,22 @@
                     android:gravity="center_vertical"
                     android:clickable="true"
                     android:focusable="true">
-                    <TextView android:layout_width="28dp" android:layout_height="wrap_content"
-                        android:text="5." android:textSize="13sp"
-                        android:textColor="@color/text_secondary"/>
                     <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
                         android:text="🏔️" android:textSize="18sp" android:layout_marginEnd="8dp"/>
-                    <TextView android:layout_width="0dp" android:layout_height="wrap_content"
-                        android:layout_weight="1" android:text="Istočna Srbija"
-                        android:textSize="15sp" android:textStyle="bold"
-                        android:textColor="@color/text_primary"/>
-                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                        android:text="98 ⭐" android:textSize="13sp"
+                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
+                        android:layout_weight="1" android:orientation="vertical">
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="Istočna Srbija" android:textSize="15sp" android:textStyle="bold"
+                            android:textColor="@color/text_primary"/>
+                        <TextView android:id="@+id/badgeIstocna"
+                            android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="← Vaš region" android:textSize="11sp"
+                            android:textColor="@color/primary_green" android:textStyle="bold"
+                            android:visibility="gone"/>
+                    </LinearLayout>
+                    <TextView android:id="@+id/tvIstocnaZvezde"
+                        android:layout_width="wrap_content" android:layout_height="wrap_content"
+                        android:text="0 ⭐" android:textSize="13sp"
                         android:textColor="@color/text_secondary"/>
                 </LinearLayout>
 
@@ -202,17 +224,22 @@
                     android:gravity="center_vertical"
                     android:clickable="true"
                     android:focusable="true">
-                    <TextView android:layout_width="28dp" android:layout_height="wrap_content"
-                        android:text="6." android:textSize="13sp"
-                        android:textColor="@color/text_secondary"/>
                     <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
                         android:text="🌄" android:textSize="18sp" android:layout_marginEnd="8dp"/>
-                    <TextView android:layout_width="0dp" android:layout_height="wrap_content"
-                        android:layout_weight="1" android:text="Južna Srbija"
-                        android:textSize="15sp" android:textStyle="bold"
-                        android:textColor="@color/text_primary"/>
-                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                        android:text="76 ⭐" android:textSize="13sp"
+                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
+                        android:layout_weight="1" android:orientation="vertical">
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="Južna Srbija" android:textSize="15sp" android:textStyle="bold"
+                            android:textColor="@color/text_primary"/>
+                        <TextView android:id="@+id/badgeJuzna"
+                            android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="← Vaš region" android:textSize="11sp"
+                            android:textColor="@color/primary_green" android:textStyle="bold"
+                            android:visibility="gone"/>
+                    </LinearLayout>
+                    <TextView android:id="@+id/tvJuznaZvezde"
+                        android:layout_width="wrap_content" android:layout_height="wrap_content"
+                        android:text="0 ⭐" android:textSize="13sp"
                         android:textColor="@color/text_secondary"/>
                 </LinearLayout>
 

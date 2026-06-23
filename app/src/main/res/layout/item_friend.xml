@@ -19,13 +19,11 @@
         <!-- Avatar -->
         <TextView
             android:id="@+id/tvFriendAvatar"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:textSize="24sp"
             android:gravity="center"
-            android:textSize="28sp"
-            android:text="👤"
-            android:background="@drawable/bg_avatar"
-            android:layout_marginEnd="12dp"/>
+            android:layout_marginEnd="8dp"/>
 
         <!-- Info -->
         <LinearLayout

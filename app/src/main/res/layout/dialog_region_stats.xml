@@ -50,7 +50,7 @@
                 android:id="@+id/tvPrvaMesta"
                 android:layout_width="wrap_content" android:layout_height="wrap_content"
                 android:text="0" android:textSize="24sp" android:textStyle="bold"
-                android:textColor="@color/gold" android:gravity="center"/>
+                android:textColor="@color/gold_border" android:gravity="center"/>
             <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
                 android:text="1. mesta" android:textSize="11sp"
                 android:textColor="@color/text_secondary" android:gravity="center"/>
@@ -71,7 +71,7 @@
                 android:id="@+id/tvDrugaMesta"
                 android:layout_width="wrap_content" android:layout_height="wrap_content"
                 android:text="0" android:textSize="24sp" android:textStyle="bold"
-                android:textColor="@color/silver" android:gravity="center"/>
+                android:textColor="@color/silver_border" android:gravity="center"/>
             <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
                 android:text="2. mesta" android:textSize="11sp"
                 android:textColor="@color/text_secondary" android:gravity="center"/>
@@ -91,7 +91,7 @@
                 android:id="@+id/tvTrecaMesta"
                 android:layout_width="wrap_content" android:layout_height="wrap_content"
                 android:text="0" android:textSize="24sp" android:textStyle="bold"
-                android:textColor="@color/bronze" android:gravity="center"/>
+                android:textColor="@color/bronze_border" android:gravity="center"/>
             <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
                 android:text="3. mesta" android:textSize="11sp"
                 android:textColor="@color/text_secondary" android:gravity="center"/>

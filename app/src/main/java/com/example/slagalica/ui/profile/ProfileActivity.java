@@ -56,6 +56,41 @@ public class ProfileActivity extends AppCompatActivity {
         ((MaterialButton) findViewById(R.id.btnLogout)).setOnClickListener(v -> logout());
     }
 
+    private void applyAvatarBorder(String userRegion) {
+        if (userRegion == null) return;
+        com.google.firebase.firestore.FirebaseFirestore.getInstance()
+                .collection("region_history")
+                .orderBy(com.google.firebase.firestore.FieldPath.documentId(),
+                        com.google.firebase.firestore.Query.Direction.DESCENDING)
+                .limit(1)
+                .get()
+                .addOnSuccessListener(snap -> {
+                    if (snap.isEmpty()) {
+                        tvAvatar.setBackground(null); // nema istorije - ukloni eventualni stari okvir
+                        return;
+                    }
+                    com.google.firebase.firestore.DocumentSnapshot last = snap.getDocuments().get(0);
+                    String gold = last.getString("gold");
+                    String silver = last.getString("silver");
+                    String bronze = last.getString("bronze");
+
+                    Integer colorRes = null;
+                    if (userRegion.equals(gold)) colorRes = R.color.gold_border;
+                    else if (userRegion.equals(silver)) colorRes = R.color.silver_border;
+                    else if (userRegion.equals(bronze)) colorRes = R.color.bronze_border;
+
+                    if (colorRes != null) {
+                        android.graphics.drawable.GradientDrawable border = new android.graphics.drawable.GradientDrawable();
+                        border.setShape(android.graphics.drawable.GradientDrawable.OVAL);
+                        border.setStroke(8, androidx.core.content.ContextCompat.getColor(this, colorRes));
+                        border.setColor(android.graphics.Color.TRANSPARENT);
+                        tvAvatar.setBackground(border);
+                    } else {
+                        tvAvatar.setBackground(null);
+                    }
+                })
+                .addOnFailureListener(e -> { /* nije kritično, samo ostaje bez okvira */ });
+    }
     private void initViews() {
         tvAvatar         = findViewById(R.id.ivAvatar);
         tvUsername       = findViewById(R.id.tvUsername);
@@ -129,6 +164,7 @@ public class ProfileActivity extends AppCompatActivity {
                 @Override public void onError(Exception e) {}
             });
         }
+        applyAvatarBorder(user.getRegion());
     }
 
     /** Generiše QR kod iz UID-a korisnika i prikazuje ga */

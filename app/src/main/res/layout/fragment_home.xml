@@ -118,6 +118,7 @@
 
                 <!-- Misija 1 -->
                 <LinearLayout
+                    android:id="@+id/rowMissionWin"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="horizontal"
@@ -137,6 +138,7 @@
                         android:textSize="14sp"
                         android:textColor="@color/text_primary"/>
                     <TextView
+                        android:id="@+id/tvMissionWinStatus"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="@string/home_mission_reward"
@@ -150,6 +152,7 @@
 
                 <!-- Misija 2 -->
                 <LinearLayout
+                    android:id="@+id/rowMissionChat"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="horizontal"
@@ -169,6 +172,7 @@
                         android:textSize="14sp"
                         android:textColor="@color/text_primary"/>
                     <TextView
+                        android:id="@+id/tvMissionChatStatus"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="@string/home_mission_reward"
@@ -182,6 +186,7 @@
 
                 <!-- Misija 3 -->
                 <LinearLayout
+                    android:id="@+id/rowMissionFriendly"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="horizontal"
@@ -201,6 +206,7 @@
                         android:textSize="14sp"
                         android:textColor="@color/text_primary"/>
                     <TextView
+                        android:id="@+id/tvMissionFriendlyStatus"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="@string/home_mission_reward"
@@ -214,6 +220,7 @@
 
                 <!-- Misija 4 -->
                 <LinearLayout
+                    android:id="@+id/rowMissionTournament"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="horizontal"
@@ -233,6 +240,7 @@
                         android:textSize="14sp"
                         android:textColor="@color/text_primary"/>
                     <TextView
+                        android:id="@+id/tvMissionTournamentStatus"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="@string/home_mission_reward"

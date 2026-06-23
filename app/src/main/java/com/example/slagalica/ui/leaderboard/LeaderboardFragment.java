@@ -6,21 +6,19 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
-
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.RecyclerView;
-
 import com.example.slagalica.R;
-import com.example.slagalica.data.repository.LeaderboardRepository;
+import com.example.slagalica.data.repository.CycleLeaderboardRepository;
 import com.google.android.material.button.MaterialButton;
 
 public class LeaderboardFragment extends Fragment {
 
     private RecyclerView rvLeaderboard;
     private LeaderboardAdapter adapter;
-    private final LeaderboardRepository repo = new LeaderboardRepository();
+    private final CycleLeaderboardRepository repo = new CycleLeaderboardRepository();
     private boolean showingWeekly = true;
 
     private TextView tvDateRange;
@@ -31,7 +29,7 @@ public class LeaderboardFragment extends Fragment {
         @Override
         public void run() {
             loadData();
-            refreshHandler.postDelayed(this, 120_000); // 2 minutes
+            refreshHandler.postDelayed(this, 120_000); // zahtev 4d - svakih 2 minuta
         }
     };
 
@@ -50,15 +48,8 @@ public class LeaderboardFragment extends Fragment {
         adapter = new LeaderboardAdapter();
         rvLeaderboard.setAdapter(adapter);
 
-        btnWeekly.setOnClickListener(view -> {
-            showingWeekly = true;
-            loadData();
-        });
-
-        btnMonthly.setOnClickListener(view -> {
-            showingWeekly = false;
-            loadData();
-        });
+        btnWeekly.setOnClickListener(view -> { showingWeekly = true; loadData(); });
+        btnMonthly.setOnClickListener(view -> { showingWeekly = false; loadData(); });
 
         return v;
     }
@@ -76,19 +67,20 @@ public class LeaderboardFragment extends Fragment {
     }
 
     private void loadData() {
+        if (getContext() == null) return;
         if (showingWeekly) {
-            repo.getWeeklyRankings(new LeaderboardRepository.Callback<java.util.List<com.example.slagalica.data.model.LeaderboardEntry>>() {
-                @Override public void onSuccess(java.util.List<com.example.slagalica.data.model.LeaderboardEntry> result) {
+            tvDateRange.setText("Nedelja: " + repo.currentWeekRangeLabel());
+            repo.getWeeklyRanking(new CycleLeaderboardRepository.Callback<java.util.List<com.example.slagalica.data.model.CycleEntry>>() {
+                @Override public void onSuccess(java.util.List<com.example.slagalica.data.model.CycleEntry> result) {
                     adapter.setEntries(result);
-                    tvDateRange.setText("Tekuća nedelja");
                 }
                 @Override public void onError(Exception e) {}
             });
         } else {
-            repo.getMonthlyRankings(new LeaderboardRepository.Callback<java.util.List<com.example.slagalica.data.model.LeaderboardEntry>>() {
-                @Override public void onSuccess(java.util.List<com.example.slagalica.data.model.LeaderboardEntry> result) {
+            tvDateRange.setText("Mesec: " + repo.currentMonthRangeLabel());
+            repo.getMonthlyRanking(new CycleLeaderboardRepository.Callback<java.util.List<com.example.slagalica.data.model.CycleEntry>>() {
+                @Override public void onSuccess(java.util.List<com.example.slagalica.data.model.CycleEntry> result) {
                     adapter.setEntries(result);
-                    tvDateRange.setText("Tekući mesec");
                 }
                 @Override public void onError(Exception e) {}
             });

@@ -96,6 +96,7 @@ public class NotificationsFragment extends Fragment {
             intent.putExtra("myId", myUid);
             intent.putExtra("opponentId", item.getFromUserId());
             intent.putExtra("isPlayer1", false); // Invited person is Player 2
+            intent.putExtra("isFriendly", true);
             startActivity(intent);
         }, e -> {
             if (isAdded() && getActivity() != null)

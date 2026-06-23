@@ -27,6 +27,9 @@ import com.google.android.material.button.MaterialButton;
 
 public class MainActivity extends AppCompatActivity {
 
+    private com.google.firebase.firestore.ListenerRegistration notifListenerReg;
+    private java.util.Set<String> seenNotifIds = new java.util.HashSet<>();
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -42,6 +45,26 @@ public class MainActivity extends AppCompatActivity {
         new UserRepository().setOnline(true, null);
         BottomNavigationView bottomNav = findViewById(R.id.bottomNav);
 
+        new com.example.slagalica.data.repository.RegionStatsRepository()
+                .checkAndRunMonthlyReset(new com.example.slagalica.data.repository.RegionStatsRepository.Callback<Void>() {
+                    @Override public void onSuccess(Void r) {}
+                    @Override public void onError(Exception e) {}
+                });
+
+        checkPendingRewardDialog();
+
+        com.example.slagalica.data.repository.CycleLeaderboardRepository cycleRepo =
+                new com.example.slagalica.data.repository.CycleLeaderboardRepository();
+
+        cycleRepo.checkAndRunWeeklyReset(new com.example.slagalica.data.repository.CycleLeaderboardRepository.Callback<Void>() {
+            @Override public void onSuccess(Void r) {}
+            @Override public void onError(Exception e) {}
+        });
+        cycleRepo.checkAndRunMonthlyReset(new com.example.slagalica.data.repository.CycleLeaderboardRepository.Callback<Void>() {
+            @Override public void onSuccess(Void r) { checkPendingRewardDialog(); }
+            @Override public void onError(Exception e) { checkPendingRewardDialog(); }
+        });
+
         loadFragment(new HomeFragment());
 
         ivProfile.setOnClickListener(v ->
@@ -56,6 +79,7 @@ public class MainActivity extends AppCompatActivity {
             }
         }
 
+        startGlobalNotificationListener();
         bottomNav.setOnItemSelectedListener(item -> {
             int id = item.getItemId();
             if (id == R.id.nav_home) {
@@ -88,6 +112,103 @@ public class MainActivity extends AppCompatActivity {
                 .beginTransaction()
                 .replace(R.id.fragmentContainer, fragment)
                 .commit();
+    }
+
+    private void checkPendingRewardDialog() {
+        String uid = com.google.firebase.auth.FirebaseAuth.getInstance().getUid();
+        if (uid == null) return;
+
+        com.google.firebase.firestore.FirebaseFirestore.getInstance()
+                .collection("pending_rewards")
+                .whereEqualTo("userId", uid)
+                .whereEqualTo("shown", false)
+                .get()
+                .addOnSuccessListener(snap -> {
+                    for (com.google.firebase.firestore.QueryDocumentSnapshot doc : snap) {
+                        showRewardDialog(doc);
+                    }
+                });
+    }
+
+    private void showRewardDialog(com.google.firebase.firestore.QueryDocumentSnapshot doc) {
+        long place = doc.getLong("place");
+        long tokens = doc.getLong("tokens");
+        String cycleLabel = doc.getString("cycleLabel");
+
+        android.view.View dialogView = getLayoutInflater().inflate(R.layout.dialog_reward, null);
+        TextView tvRewardText = dialogView.findViewById(R.id.tvRewardText);
+        ImageView ivConfetti = dialogView.findViewById(R.id.ivConfetti); // emoji/ikonica za animaciju
+
+        String medal = place == 1 ? "🥇" : place == 2 ? "🥈" : place == 3 ? "🥉" : "🏅";
+        tvRewardText.setText(medal + " " + place + ". mesto na " + cycleLabel + " rang listi!\n+" + tokens + " tokena");
+
+        // Jednostavna scale animacija
+        android.view.animation.ScaleAnimation scaleAnim = new android.view.animation.ScaleAnimation(
+                0.3f, 1f, 0.3f, 1f,
+                android.view.animation.Animation.RELATIVE_TO_SELF, 0.5f,
+                android.view.animation.Animation.RELATIVE_TO_SELF, 0.5f);
+        scaleAnim.setDuration(500);
+        scaleAnim.setInterpolator(new android.view.animation.OvershootInterpolator());
+        ivConfetti.startAnimation(scaleAnim);
+
+        // Zvuk - kratak sistemski ton
+        android.media.RingtoneManager.getRingtone(this,
+                android.media.RingtoneManager.getDefaultUri(android.media.RingtoneManager.TYPE_NOTIFICATION)).play();
+
+        new AlertDialog.Builder(this)
+                .setView(dialogView)
+                .setPositiveButton("Super!", (d, w) -> {
+                    doc.getReference().update("shown", true);
+                })
+                .setCancelable(false)
+                .show();
+    }
+    private void startGlobalNotificationListener() {
+        String uid = com.google.firebase.auth.FirebaseAuth.getInstance().getUid();
+        if (uid == null) return;
+
+        notifListenerReg = new com.example.slagalica.data.repository.NotificationRepository()
+                .listenForUser(uid, list -> {
+                    for (com.example.slagalica.data.model.AppNotification n : list) {
+                        if (!n.isRead() && !seenNotifIds.contains(n.getId())) {
+                            seenNotifIds.add(n.getId());
+                            showSystemNotification(n);
+                        }
+                    }
+                }, e -> {});
+    }
+
+    private void showSystemNotification(com.example.slagalica.data.model.AppNotification n) {
+        String channelId = "game_invites";
+        android.app.NotificationManager manager =
+                (android.app.NotificationManager) getSystemService(NOTIFICATION_SERVICE);
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            android.app.NotificationChannel channel = new android.app.NotificationChannel(
+                    channelId, "Pozivi i obaveštenja", android.app.NotificationManager.IMPORTANCE_HIGH);
+            manager.createNotificationChannel(channel);
+        }
+
+        if (checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
+                && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            return; // nema dozvole, ne pucaj
+        }
+
+        androidx.core.app.NotificationCompat.Builder builder =
+                new androidx.core.app.NotificationCompat.Builder(this, channelId)
+                        .setSmallIcon(R.mipmap.ic_launcher) // zameni svojom ikonicom ako imaš bolju
+                        .setContentTitle("Slagalica")
+                        .setContentText(n.getMessage())
+                        .setPriority(androidx.core.app.NotificationCompat.PRIORITY_HIGH)
+                        .setAutoCancel(true);
+
+        manager.notify(n.getId().hashCode(), builder.build());
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        if (notifListenerReg != null) notifListenerReg.remove();
     }
 
     private void showLeagueDialog() {

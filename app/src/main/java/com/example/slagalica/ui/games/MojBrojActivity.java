@@ -80,6 +80,8 @@ public class MojBrojActivity extends AppCompatActivity {
     private static final float SHAKE_THRESHOLD = 2.7f; // G-sila za detekciju
     private static final int SHAKE_COOLDOWN_MS = 600;  // min. razmak između detekcija
 
+    private boolean isFriendly; // NOVO
+
     private final SensorEventListener shakeListener = new SensorEventListener() {
         @Override
         public void onSensorChanged(SensorEvent event) {
@@ -111,6 +113,7 @@ public class MojBrojActivity extends AppCompatActivity {
         isGuest       = getIntent().getBooleanExtra("isGuest", false);
         matchId       = getIntent().getStringExtra("matchId");
         myId          = getIntent().getStringExtra("myId");
+        isFriendly = getIntent().getBooleanExtra("isFriendly", false);
         opponentId    = getIntent().getStringExtra("opponentId");
         isPlayer1     = getIntent().getBooleanExtra("isPlayer1", true);
         prevMyScore  = getIntent().getIntExtra("totalMyScore", 0);
@@ -450,6 +453,7 @@ public class MojBrojActivity extends AppCompatActivity {
         intent.putExtra("myId",               myId);
         intent.putExtra("opponentId",         opponentId);
         intent.putExtra("isPlayer1",          isPlayer1);
+        intent.putExtra("isFriendly",         isFriendly);
         intent.putExtra("totalMyScore",       prevMyScore  + myTotalScore);
         intent.putExtra("totalOpponentScore", prevOppScore + oppTotalScore);
         startActivity(intent);

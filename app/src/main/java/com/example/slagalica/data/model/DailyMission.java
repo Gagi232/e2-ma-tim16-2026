@@ -11,6 +11,15 @@ public class DailyMission {
 
     public DailyMission() {}
 
+    private boolean bonusClaimed;
+
+    public boolean isBonusClaimed() { return bonusClaimed; }
+    public void setBonusClaimed(boolean bonusClaimed) { this.bonusClaimed = bonusClaimed; }
+
+    public boolean allComplete() {
+        return winMatch && sendMessage && friendlyMatch && winTournament;
+    }
+
     public String getId() { return id; }
     public void setId(String id) { this.id = id; }
 

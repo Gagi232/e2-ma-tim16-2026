@@ -12,16 +12,22 @@ import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import com.example.slagalica.R;
 import com.example.slagalica.data.model.DailyMission;
+import com.example.slagalica.data.repository.MatchmakingRepository;
 import com.example.slagalica.data.repository.MissionRepository;
 import com.example.slagalica.ui.games.KoZnaZnaActivity;
 import com.example.slagalica.ui.tournament.TournamentActivity;
 import com.google.android.material.button.MaterialButton;
 import com.google.firebase.auth.FirebaseAuth;
+import android.widget.Toast;
+import androidx.appcompat.app.AlertDialog;
 
 public class HomeFragment extends Fragment {
 
     private final MissionRepository missionRepo = new MissionRepository();
     private TextView tvMissionWinStatus, tvMissionChatStatus, tvMissionFriendlyStatus, tvMissionTournamentStatus;
+
+    private final MatchmakingRepository matchmakingRepo = new MatchmakingRepository();
+    private AlertDialog searchingDialog;
 
     @Nullable
     @Override
@@ -31,9 +37,8 @@ public class HomeFragment extends Fragment {
         View view = inflater.inflate(R.layout.fragment_home, container, false);
 
         MaterialButton btnPlay = view.findViewById(R.id.btnPlay);
-        btnPlay.setOnClickListener(v ->
-                startActivity(new Intent(getActivity(), KoZnaZnaActivity.class))
-        );
+        btnPlay.setOnClickListener(v -> startRandomMatch());
+
         MaterialButton btnTournament = view.findViewById(R.id.btnTournament);
         btnTournament.setOnClickListener(v ->
                 startActivity(new Intent(getActivity(), TournamentActivity.class))
@@ -47,6 +52,55 @@ public class HomeFragment extends Fragment {
         loadMissions();
 
         return view;
+    }
+
+    private void startRandomMatch() {
+        String myId = FirebaseAuth.getInstance().getUid();
+        if (myId == null) return;
+
+        new com.example.slagalica.data.repository.UserRepository().spendToken(
+                new com.example.slagalica.data.repository.UserRepository.Callback<Void>() {
+                    @Override
+                    public void onSuccess(Void r) {
+                        showSearchingDialog();
+                        matchmakingRepo.findMatch(myId, (matchId, opponentId, isPlayer1) -> {
+                            if (searchingDialog != null) searchingDialog.dismiss();
+                            Intent intent = new Intent(getActivity(), KoZnaZnaActivity.class);
+                            intent.putExtra("isGuest", false);
+                            intent.putExtra("matchId", matchId);
+                            intent.putExtra("myId", myId);
+                            intent.putExtra("opponentId", opponentId);
+                            intent.putExtra("isPlayer1", isPlayer1);
+                            intent.putExtra("isFriendly", false);
+                            startActivity(intent);
+                        }, errorMsg -> {
+                            if (searchingDialog != null) searchingDialog.dismiss();
+                            Toast.makeText(getActivity(), "Greška: " + errorMsg, Toast.LENGTH_SHORT).show();
+                        });
+                    }
+                    @Override
+                    public void onError(Exception e) {
+                        Toast.makeText(getActivity(), e.getMessage(), Toast.LENGTH_SHORT).show();
+                    }
+                });
+    }
+
+    private void showSearchingDialog() {
+        searchingDialog = new androidx.appcompat.app.AlertDialog.Builder(requireContext())
+                .setTitle("Traženje protivnika")
+                .setMessage("Tražimo ti protivnika...")
+                .setNegativeButton("Otkaži", (d, w) -> matchmakingRepo.cancelSearch())
+                .setCancelable(false)
+                .show();
+    }
+
+    @Override
+    public void onDestroyView() {
+        super.onDestroyView();
+        if (searchingDialog != null && searchingDialog.isShowing()) {
+            matchmakingRepo.cancelSearch();
+            searchingDialog.dismiss();
+        }
     }
 
     @Override

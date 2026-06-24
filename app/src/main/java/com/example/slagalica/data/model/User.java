@@ -11,6 +11,7 @@ public class User {
     private String avatarUrl;
     private long createdAt;
     private boolean online;
+    private long lastDailyTokenGrant;
 
     private double regionLat;
     private double regionLng;
@@ -67,4 +68,7 @@ public class User {
 
     public boolean isOnline() { return online; }
     public void setOnline(boolean online) { this.online = online; }
+
+    public long getLastDailyTokenGrant(){return lastDailyTokenGrant;}
+    public  void setLastDailyTokenGrant(long lastDailyTokenGrant){this.lastDailyTokenGrant=lastDailyTokenGrant;}
 }

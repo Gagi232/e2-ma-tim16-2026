@@ -14,6 +14,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.fragment.app.Fragment;
 
 import com.example.slagalica.data.remote.DatabaseSeeder;
+import com.example.slagalica.data.repository.MatchmakingRepository;
 import com.example.slagalica.data.repository.UserRepository;
 import com.example.slagalica.logic.LeagueLogic;
 import com.example.slagalica.ui.friends.FriendsFragment;
@@ -25,12 +26,16 @@ import com.example.slagalica.ui.profile.ProfileActivity;
 import com.example.slagalica.ui.region.RegionsFragment;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.android.material.button.MaterialButton;
+import com.google.firebase.auth.FirebaseAuth;
 
 public class MainActivity extends AppCompatActivity {
 
     private com.google.firebase.firestore.ListenerRegistration notifListenerReg;
     private java.util.Set<String> seenNotifIds = new java.util.HashSet<>();
     private TextView tvTokens, tvStars, tvLeague, tvProfile;
+
+    private final MatchmakingRepository matchmakingRepo = new MatchmakingRepository();
+    private AlertDialog searchingDialog;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -44,13 +49,18 @@ public class MainActivity extends AppCompatActivity {
         DatabaseSeeder.seedAll();
         tvLeague.setOnClickListener(v -> showLeagueDialog());
         MaterialButton btnPlay = findViewById(R.id.btnPlay);
-        btnPlay.setOnClickListener(v ->
-                startActivity(new Intent(this, KoZnaZnaActivity.class))
-        );
+
+        btnPlay.setOnClickListener(v -> startRandomMatch());
+
         new UserRepository().setOnline(true, null);
         BottomNavigationView bottomNav = findViewById(R.id.bottomNav);
 
         updateTopBar();
+
+        new UserRepository().checkAndGrantDailyTokens(new UserRepository.Callback<Void>() {
+            @Override public void onSuccess(Void r) { updateTopBar(); }
+            @Override public void onError(Exception e) {}
+        });
 
         new com.example.slagalica.data.repository.RegionStatsRepository()
                 .checkAndRunMonthlyReset(new com.example.slagalica.data.repository.RegionStatsRepository.Callback<Void>() {
@@ -109,6 +119,47 @@ public class MainActivity extends AppCompatActivity {
         new UserRepository().setOnline(true, null);
         updateTopBar();
     }
+    private void startRandomMatch() {
+        String myId = FirebaseAuth.getInstance().getUid();
+        if (myId == null) return;
+
+        new com.example.slagalica.data.repository.UserRepository().spendToken(
+                new com.example.slagalica.data.repository.UserRepository.Callback<Void>() {
+                    @Override
+                    public void onSuccess(Void r) {
+                        showSearchingDialog();
+                        matchmakingRepo.findMatch(myId, (matchId, opponentId, isPlayer1) -> {
+                            if (searchingDialog != null) searchingDialog.dismiss();
+                            Intent intent = new Intent(MainActivity.this, KoZnaZnaActivity.class);
+                            intent.putExtra("isGuest", false);
+                            intent.putExtra("matchId", matchId);
+                            intent.putExtra("myId", myId);
+                            intent.putExtra("opponentId", opponentId);
+                            intent.putExtra("isPlayer1", isPlayer1);
+                            intent.putExtra("isFriendly", false);
+                            startActivity(intent);
+                        }, errorMsg -> {
+                            if (searchingDialog != null) searchingDialog.dismiss();
+                            Toast.makeText(MainActivity.this, "Greška: " + errorMsg, Toast.LENGTH_SHORT).show();
+                        });
+                    }
+                    @Override
+                    public void onError(Exception e) {
+                        Toast.makeText(MainActivity.this, e.getMessage(), Toast.LENGTH_SHORT).show();
+                    }
+                });
+    }
+
+    private void showSearchingDialog() {
+        searchingDialog = new AlertDialog.Builder(this)
+                .setTitle("Traženje protivnika")
+                .setMessage("Tražimo ti protivnika...")
+                .setNegativeButton("Otkaži", (d, w) -> matchmakingRepo.cancelSearch())
+                .setCancelable(false)
+                .show();
+    }
+
+
 
     private void updateTopBar() {
         UserRepository userRepo = new UserRepository();
@@ -245,6 +296,10 @@ public class MainActivity extends AppCompatActivity {
     protected void onDestroy() {
         super.onDestroy();
         if (notifListenerReg != null) notifListenerReg.remove();
+        if (searchingDialog != null && searchingDialog.isShowing()) {
+            matchmakingRepo.cancelSearch();
+            searchingDialog.dismiss();
+        }
     }
 
     private void showLeagueDialog() {

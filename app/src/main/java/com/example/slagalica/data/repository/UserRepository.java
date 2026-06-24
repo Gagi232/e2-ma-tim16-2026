@@ -17,6 +17,48 @@ public class UserRepository {
         void onError(Exception e);
     }
 
+    public void spendToken(Callback<Void> callback) {
+        getCurrentUser(new Callback<com.example.slagalica.data.model.User>() {
+            @Override
+            public void onSuccess(com.example.slagalica.data.model.User user) {
+                if (user.getTokens() <= 0) {
+                    callback.onError(new Exception("Nemate dovoljno tokena!"));
+                    return;
+                }
+                updateField("tokens", user.getTokens() - 1, callback);
+            }
+            @Override public void onError(Exception e) { callback.onError(e); }
+        });
+    }
+
+    public void checkAndGrantDailyTokens(Callback<Void> callback) {
+        getCurrentUser(new Callback<com.example.slagalica.data.model.User>() {
+            @Override
+            public void onSuccess(com.example.slagalica.data.model.User user) {
+                long now = System.currentTimeMillis();
+                long oneDayMs = 24L * 60 * 60 * 1000;
+                if (now - user.getLastDailyTokenGrant() < oneDayMs) {
+                    callback.onSuccess(null); // već dobio danas
+                    return;
+                }
+                int league = com.example.slagalica.logic.LeagueLogic.calculateLeague(user.getStars());
+                int bonus = com.example.slagalica.logic.LeagueLogic.getBonusTokensPerDay(league);
+                int dailyAmount = 5 + bonus;
+
+                int newTokens = user.getTokens() + dailyAmount;
+                java.util.Map<String, Object> updates = new java.util.HashMap<>();
+                updates.put("tokens", newTokens);
+                updates.put("lastDailyTokenGrant", now);
+
+                String uid = com.google.firebase.auth.FirebaseAuth.getInstance().getUid();
+                db.collection("users").document(uid).update(updates)
+                        .addOnSuccessListener(v -> callback.onSuccess(null))
+                        .addOnFailureListener(callback::onError);
+            }
+            @Override public void onError(Exception e) { callback.onError(e); }
+        });
+    }
+
     public void getCurrentUser(Callback<User> callback) {
         if (auth.getCurrentUser() == null) {
             callback.onError(new Exception("Nije ulogovan"));

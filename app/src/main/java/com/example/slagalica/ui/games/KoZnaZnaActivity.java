@@ -101,9 +101,37 @@ public class KoZnaZnaActivity extends AppCompatActivity {
         } else {
             matchRef = FirebaseDatabase.getInstance().getReference("activeMatches").child(matchId).child("kzz");
             setupMultiplayer();
+            listenForForfeit();
         }
     }
 
+    // Nova polja
+    private ValueEventListener forfeitListener;
+    private DatabaseReference matchInfoStatusRef;
+
+    private void listenForForfeit() {
+        if (matchId == null || isGuest) return;
+        matchInfoStatusRef = FirebaseDatabase.getInstance()
+                .getReference("activeMatches").child(matchId).child("info").child("status");
+        forfeitListener = new ValueEventListener() {
+            @Override
+            public void onDataChange(@androidx.annotation.NonNull DataSnapshot snap) {
+                String status = snap.getValue(String.class);
+                if (status != null && status.equals("forfeit_" + opponentId)) {
+                    handleOpponentForfeit();
+                }
+            }
+            @Override public void onCancelled(@androidx.annotation.NonNull DatabaseError error) {}
+        };
+        matchInfoStatusRef.addValueEventListener(forfeitListener);
+    }
+
+    private void removeForfeitListener() {
+        if (forfeitListener != null && matchInfoStatusRef != null) {
+            matchInfoStatusRef.removeEventListener(forfeitListener);
+        }
+        forfeitListener = null;
+    }
     private void bindViews() {
         tvQuestion       = findViewById(R.id.tvQuestion);
         tvTimer          = findViewById(R.id.tvTimer);
@@ -441,8 +469,32 @@ public class KoZnaZnaActivity extends AppCompatActivity {
     }
 
     private void forfeit() {
+        // otkazi sve lokalne tajmere/listenere specificne za ovu igru (vec postoji kod za to)
         if (timer != null) timer.cancel();
         if (matchRef != null) matchRef.getParent().child("info").child("status").setValue("forfeit_" + myId);
+        removeForfeitListener();
+        goToResultsAsLoser();
+    }
+
+    private void goToResultsAsLoser() {
+        Intent intent = new Intent(this, com.example.slagalica.ui.main.ResultsActivity.class);
+        intent.putExtra("isGuest", isGuest);
+        intent.putExtra("isFriendly", isFriendly);
+        intent.putExtra("totalMyScore", 0);        // forsiran gubitak, 0 bodova => bez bonusa
+        intent.putExtra("totalOpponentScore", 1);  // bilo koji broj > 0, garantuje iWon=false
+        startActivity(intent);
+        finish();
+    }
+
+    private void handleOpponentForfeit() {
+        if (timer != null) timer.cancel();
+        removeForfeitListener();
+        Intent intent = new Intent(this, com.example.slagalica.ui.main.ResultsActivity.class);
+        intent.putExtra("isGuest", isGuest);
+        intent.putExtra("isFriendly", isFriendly);
+        intent.putExtra("totalMyScore", myScore);
+        intent.putExtra("totalOpponentScore", 0);
+        startActivity(intent);
         finish();
     }
 
@@ -454,6 +506,7 @@ public class KoZnaZnaActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        removeForfeitListener();
         if (timer != null) timer.cancel();
         for (int i = 0; i < activeRefs.size(); i++) {
             activeRefs.get(i).removeEventListener(activeListeners.get(i));

@@ -90,15 +90,46 @@ public class SpojniceActivity extends AppCompatActivity {
             matchRef = FirebaseDatabase.getInstance()
                     .getReference("activeMatches").child(matchId).child("spojnice");
 
+        listenForForfeit();
+
         findViewById(R.id.btnFinish).setVisibility(android.view.View.GONE);
         findViewById(R.id.btnLeave).setOnClickListener(v -> forfeit());
 
         startRound(1);
     }
 
+    // Nova polja
+    private ValueEventListener forfeitListener;
+    private DatabaseReference matchInfoStatusRef;
+
+    private void listenForForfeit() {
+        if (matchId == null || isGuest) return;
+        matchInfoStatusRef = FirebaseDatabase.getInstance()
+                .getReference("activeMatches").child(matchId).child("info").child("status");
+        forfeitListener = new ValueEventListener() {
+            @Override
+            public void onDataChange(@androidx.annotation.NonNull DataSnapshot snap) {
+                String status = snap.getValue(String.class);
+                if (status != null && status.equals("forfeit_" + opponentId)) {
+                    handleOpponentForfeit();
+                }
+            }
+            @Override public void onCancelled(@androidx.annotation.NonNull DatabaseError error) {}
+        };
+        matchInfoStatusRef.addValueEventListener(forfeitListener);
+    }
+
+    private void removeForfeitListener() {
+        if (forfeitListener != null && matchInfoStatusRef != null) {
+            matchInfoStatusRef.removeEventListener(forfeitListener);
+        }
+        forfeitListener = null;
+    }
+
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        removeForfeitListener();
         if (timer != null) timer.cancel();
         removePhaseListener("round" + currentRound);
     }
@@ -566,13 +597,32 @@ public class SpojniceActivity extends AppCompatActivity {
     }
 
     private void forfeit() {
+        // otkazi sve lokalne tajmere/listenere specificne za ovu igru (vec postoji kod za to)
         if (timer != null) timer.cancel();
-        if (matchRef != null)
-            matchRef.getParent().child("info").child("status").setValue("forfeit_" + myId)
-                    .addOnFailureListener(e -> showWriteError("forfeit", e));
-        Intent i = new Intent(this, isGuest ? GuestActivity.class : MainActivity.class);
-        i.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
-        startActivity(i);
+        if (matchRef != null) matchRef.getParent().child("info").child("status").setValue("forfeit_" + myId);
+        removeForfeitListener();
+        goToResultsAsLoser();
+    }
+
+    private void handleOpponentForfeit() {
+        if (timer != null) timer.cancel();
+        removeForfeitListener();
+        Intent intent = new Intent(this, com.example.slagalica.ui.main.ResultsActivity.class);
+        intent.putExtra("isGuest", isGuest);
+        intent.putExtra("isFriendly", isFriendly);
+        intent.putExtra("totalMyScore", prevMy + totalMy);
+        intent.putExtra("totalOpponentScore", 0);
+        startActivity(intent);
+        finish();
+    }
+
+    private void goToResultsAsLoser() {
+        Intent intent = new Intent(this, com.example.slagalica.ui.main.ResultsActivity.class);
+        intent.putExtra("isGuest", isGuest);
+        intent.putExtra("isFriendly", isFriendly);
+        intent.putExtra("totalMyScore", 0);        // forsiran gubitak, 0 bodova => bez bonusa
+        intent.putExtra("totalOpponentScore", 1);  // bilo koji broj > 0, garantuje iWon=false
+        startActivity(intent);
         finish();
     }
 

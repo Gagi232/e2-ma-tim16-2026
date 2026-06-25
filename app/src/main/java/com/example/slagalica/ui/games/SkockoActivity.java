@@ -105,8 +105,37 @@ public class SkockoActivity extends AppCompatActivity {
             loadSolo();
         } else {
             matchRef = FirebaseDatabase.getInstance().getReference("activeMatches").child(matchId).child("skocko");
+            listenForForfeit();
             startMultiplayerRound(1);
         }
+    }
+
+    // Nova polja
+    private ValueEventListener forfeitListener;
+    private DatabaseReference matchInfoStatusRef;
+
+    private void listenForForfeit() {
+        if (matchId == null || isGuest) return;
+        matchInfoStatusRef = FirebaseDatabase.getInstance()
+                .getReference("activeMatches").child(matchId).child("info").child("status");
+        forfeitListener = new ValueEventListener() {
+            @Override
+            public void onDataChange(@androidx.annotation.NonNull DataSnapshot snap) {
+                String status = snap.getValue(String.class);
+                if (status != null && status.equals("forfeit_" + opponentId)) {
+                    handleOpponentForfeit();
+                }
+            }
+            @Override public void onCancelled(@androidx.annotation.NonNull DatabaseError error) {}
+        };
+        matchInfoStatusRef.addValueEventListener(forfeitListener);
+    }
+
+    private void removeForfeitListener() {
+        if (forfeitListener != null && matchInfoStatusRef != null) {
+            matchInfoStatusRef.removeEventListener(forfeitListener);
+        }
+        forfeitListener = null;
     }
 
     private void updateScoreUI() {
@@ -597,7 +626,32 @@ public class SkockoActivity extends AppCompatActivity {
     }
 
     private void forfeit() {
-        if (matchRef != null) matchRef.getParent().child("status").setValue("forfeit_" + myId);
+        // otkazi sve lokalne tajmere/listenere specificne za ovu igru (vec postoji kod za to)
+        if (timer != null) timer.cancel();
+        if (matchRef != null) matchRef.getParent().child("info").child("status").setValue("forfeit_" + myId);
+        removeForfeitListener();
+        goToResultsAsLoser();
+    }
+
+    private void handleOpponentForfeit() {
+        if (timer != null) timer.cancel();
+        removeForfeitListener();
+        Intent intent = new Intent(this, com.example.slagalica.ui.main.ResultsActivity.class);
+        intent.putExtra("isGuest", isGuest);
+        intent.putExtra("isFriendly", isFriendly);
+        intent.putExtra("totalMyScore", myScoreTotal);
+        intent.putExtra("totalOpponentScore", 0);
+        startActivity(intent);
+        finish();
+    }
+
+    private void goToResultsAsLoser() {
+        Intent intent = new Intent(this, com.example.slagalica.ui.main.ResultsActivity.class);
+        intent.putExtra("isGuest", isGuest);
+        intent.putExtra("isFriendly", isFriendly);
+        intent.putExtra("totalMyScore", 0);        // forsiran gubitak, 0 bodova => bez bonusa
+        intent.putExtra("totalOpponentScore", 1);  // bilo koji broj > 0, garantuje iWon=false
+        startActivity(intent);
         finish();
     }
 
@@ -606,6 +660,7 @@ public class SkockoActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        removeForfeitListener();
         if (timer != null) timer.cancel();
         if (roundListener != null && matchRef != null) matchRef.child("round" + currentRound).removeEventListener(roundListener);
     }

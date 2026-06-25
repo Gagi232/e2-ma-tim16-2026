@@ -137,6 +137,8 @@ public class MojBrojActivity extends AppCompatActivity {
                     .getReference("activeMatches").child(matchId).child("mojBroj");
         }
 
+        listenForForfeit();
+
         sensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
         if (sensorManager != null)
             accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
@@ -146,6 +148,34 @@ public class MojBrojActivity extends AppCompatActivity {
         updateTopBar();
         setupButtons();
         startRound(1);
+    }
+
+    // Nova polja
+    private ValueEventListener forfeitListener;
+    private DatabaseReference matchInfoStatusRef;
+
+    private void listenForForfeit() {
+        if (matchId == null || isGuest) return;
+        matchInfoStatusRef = FirebaseDatabase.getInstance()
+                .getReference("activeMatches").child(matchId).child("info").child("status");
+        forfeitListener = new ValueEventListener() {
+            @Override
+            public void onDataChange(@androidx.annotation.NonNull DataSnapshot snap) {
+                String status = snap.getValue(String.class);
+                if (status != null && status.equals("forfeit_" + opponentId)) {
+                    handleOpponentForfeit();
+                }
+            }
+            @Override public void onCancelled(@androidx.annotation.NonNull DatabaseError error) {}
+        };
+        matchInfoStatusRef.addValueEventListener(forfeitListener);
+    }
+
+    private void removeForfeitListener() {
+        if (forfeitListener != null && matchInfoStatusRef != null) {
+            matchInfoStatusRef.removeEventListener(forfeitListener);
+        }
+        forfeitListener = null;
     }
 
     @Override protected void onResume() {
@@ -731,14 +761,34 @@ public class MojBrojActivity extends AppCompatActivity {
     }
 
     private void forfeit() {
-        stopRoundTimer(); stopAutoStop();
-        if (matchRef != null && myId != null)
-            matchRef.getParent().child("status").setValue("forfeit_" + myId);
-        Intent i = isGuest
-                ? new Intent(this, GuestActivity.class)
-                : new Intent(this, MainActivity.class);
-        i.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
-        startActivity(i); finish();
+        // otkazi sve lokalne tajmere/listenere specificne za ovu igru (vec postoji kod za to)
+        if (roundTimer != null) roundTimer.cancel();
+        if (matchRef != null) matchRef.getParent().child("info").child("status").setValue("forfeit_" + myId);
+        removeForfeitListener();
+        goToResultsAsLoser();
+    }
+
+    private void handleOpponentForfeit() {
+        stopRoundTimer();
+        stopAutoStop();
+        removeForfeitListener();
+        Intent intent = new Intent(this, com.example.slagalica.ui.main.ResultsActivity.class);
+        intent.putExtra("isGuest", isGuest);
+        intent.putExtra("isFriendly", isFriendly);
+        intent.putExtra("totalMyScore", prevMyScore + myTotalScore);
+        intent.putExtra("totalOpponentScore", 0);
+        startActivity(intent);
+        finish();
+    }
+
+    private void goToResultsAsLoser() {
+        Intent intent = new Intent(this, com.example.slagalica.ui.main.ResultsActivity.class);
+        intent.putExtra("isGuest", isGuest);
+        intent.putExtra("isFriendly", isFriendly);
+        intent.putExtra("totalMyScore", 0);        // forsiran gubitak, 0 bodova => bez bonusa
+        intent.putExtra("totalOpponentScore", 1);  // bilo koji broj > 0, garantuje iWon=false
+        startActivity(intent);
+        finish();
     }
 
     // ── UI helpers ────────────────────────────────────────────────────────────
@@ -813,6 +863,7 @@ public class MojBrojActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         stopRoundTimer(); stopAutoStop();
+        removeForfeitListener();
         handler.removeCallbacksAndMessages(null);
         removeRoundListener();
         super.onDestroy();

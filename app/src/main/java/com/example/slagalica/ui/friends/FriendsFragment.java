@@ -18,6 +18,7 @@ import androidx.fragment.app.Fragment;
 import com.example.slagalica.R;
 import com.example.slagalica.data.model.AppNotification;
 import com.example.slagalica.data.model.User;
+import com.example.slagalica.data.repository.CycleLeaderboardRepository;
 import com.example.slagalica.data.repository.FriendsRepository;
 import com.example.slagalica.data.repository.NotificationRepository;
 import com.example.slagalica.data.repository.UserRepository;
@@ -242,6 +243,12 @@ public class FriendsFragment extends Fragment {
                 + " · " + friend.getStars() + " ⭐";
         ((TextView) card.findViewById(R.id.tvFriendLeague)).setText(leagueText);
 
+        TextView tvFriendRank = card.findViewById(R.id.tvFriendRank);
+        if (tvFriendRank != null) {
+            tvFriendRank.setText("📊 Učitavam...");
+            loadFriendMonthlyRank(friend.getId(), tvFriendRank);
+        }
+
         ((TextView) card.findViewById(R.id.tvFriendStatus)).setText(friend.isOnline() ? "🟢 Online" : "🔴 Offline");
 
         MaterialButton btnPlay = card.findViewById(R.id.btnPlayFriend);
@@ -326,6 +333,34 @@ public class FriendsFragment extends Fragment {
         listenForAcceptance(matchId, friend.getId());
     }
 
+    private void loadFriendMonthlyRank(String friendId, TextView tvRank) {
+        new CycleLeaderboardRepository().getMonthlyRanking(
+                new CycleLeaderboardRepository.Callback<java.util.List<com.example.slagalica.data.model.CycleEntry>>() {
+                    @Override
+                    public void onSuccess(java.util.List<com.example.slagalica.data.model.CycleEntry> entries) {
+                        for (int i = 0; i < entries.size(); i++) {
+                            if (friendId.equals(entries.get(i).getUserId())) {
+                                int rank = i + 1;
+                                if (getActivity() != null) {
+                                    getActivity().runOnUiThread(() ->
+                                            tvRank.setText("📊 #" + rank + " mesečno"));
+                                }
+                                return;
+                            }
+                        }
+                        // nije rangiran ovog meseca
+                        if (getActivity() != null) {
+                            getActivity().runOnUiThread(() -> tvRank.setText("📊 Nije rangiran"));
+                        }
+                    }
+                    @Override
+                    public void onError(Exception e) {
+                        if (getActivity() != null) {
+                            getActivity().runOnUiThread(() -> tvRank.setText("📊 —"));
+                        }
+                    }
+                });
+    }
     private void listenForAcceptance(String matchId, String opponentId) {
         matchListener = new ValueEventListener() {
             @Override

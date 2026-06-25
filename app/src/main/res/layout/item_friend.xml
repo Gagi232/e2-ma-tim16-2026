@@ -50,6 +50,13 @@
                 android:textColor="@color/text_secondary"/>
 
             <TextView
+                android:id="@+id/tvFriendRank"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textSize="12sp"
+                android:textColor="@color/text_secondary" />
+
+            <TextView
                 android:id="@+id/tvFriendStatus"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"

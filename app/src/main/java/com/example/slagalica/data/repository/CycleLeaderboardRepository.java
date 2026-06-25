@@ -70,13 +70,16 @@ public class CycleLeaderboardRepository {
                 .addOnFailureListener(cb::onError);
     }
 
-    private void grantRewards(List<DocumentSnapshot> rankedDocs, int[] rewards, String cycleLabel, String prevKey) {
+    private void grantRewards(List<DocumentSnapshot> rankedDocs, int[] rewards,
+                              String cycleLabel, String prevKey) {
+        Set<String> topUserIds = new HashSet<>();
         for (int i = 0; i < rankedDocs.size() && i < rewards.length; i++) {
             DocumentSnapshot doc = rankedDocs.get(i);
             String userId = doc.getId();
             String username = doc.getString("username");
             int place = i + 1;
             int tokenReward = rewards[i];
+            topUserIds.add(userId);
 
             db.collection("users").document(userId)
                     .update("tokens", FieldValue.increment(tokenReward));
@@ -87,21 +90,75 @@ public class CycleLeaderboardRepository {
             pending.put("cycleLabel", cycleLabel);
             pending.put("shown", false);
             pending.put("createdAt", System.currentTimeMillis());
-            db.collection("pending_rewards").add(pending).addOnSuccessListener(ref -> {
-                ref.update("userId", userId);
-            });
+            db.collection("pending_rewards").add(pending)
+                    .addOnSuccessListener(ref -> ref.update("userId", userId));
 
             AppNotification notif = new AppNotification();
             notif.setUserId(userId);
             notif.setType(AppNotificationManager.TYPE_REWARD);
-            notif.setMessage("Čestitamo " + username + "! Osvojili ste " + place + ". mesto na "
-                    + cycleLabel + " rang listi i dobili " + tokenReward + " tokena! 🎉");
+            notif.setMessage("Čestitamo " + username + "! Osvojili ste " + place
+                    + ". mesto na " + cycleLabel + " rang listi i dobili "
+                    + tokenReward + " tokena! 🎉");
             notif.setRead(false);
             notif.setCreatedAt(System.currentTimeMillis());
             db.collection("notifications").add(notif);
         }
-    }
 
+        // --- NOVO: kažnjavanje igrača koji nisu u top 10 ---
+        if (!cycleLabel.equals("mesečnu")) return;
+
+        String statsCollection = "cycle_stars_monthly";
+        db.collection(statsCollection)
+                .whereEqualTo("cycleKey", prevKey)
+                .get()
+                .addOnSuccessListener(allSnap -> {
+                    for (QueryDocumentSnapshot doc : allSnap) {
+                        String userId = doc.getId();
+                        if (topUserIds.contains(userId)) continue; // top 10 - preskoci
+
+                        long stars = doc.contains("stars") ? doc.getLong("stars") : 0L;
+                        if (stars <= 0) continue;
+
+                        // Fetchuj trenutnog usera da dobijemo prave zvezde (ne ciklusne)
+                        db.collection("users").document(userId).get()
+                                .addOnSuccessListener(userSnap -> {
+                                    if (!userSnap.exists()) return;
+                                    Long currentStars = userSnap.getLong("stars");
+                                    if (currentStars == null || currentStars <= 0) return;
+
+                                    long penalty = Math.round(currentStars * 0.30);
+                                    long newStars = Math.max(0, currentStars - penalty);
+                                    int oldLeague = userSnap.getLong("league") != null
+                                            ? userSnap.getLong("league").intValue() : 0;
+                                    int newLeague = com.example.slagalica.logic.LeagueLogic
+                                            .calculateLeague((int) newStars);
+
+                                    Map<String, Object> updates = new HashMap<>();
+                                    updates.put("stars", newStars);
+                                    updates.put("league", newLeague);
+                                    db.collection("users").document(userId).update(updates);
+
+                                    // Notifikacija o gubitku zvezda
+                                    String username = userSnap.getString("username");
+                                    String msg = "Nisi se plasirao na mesečnoj rang listi. "
+                                            + "Izgubio si " + penalty + " zvezda (-30%). "
+                                            + "Ostalo: " + newStars + " ⭐";
+                                    if (newLeague < oldLeague) {
+                                        msg += "\n⬇️ Pao si na: "
+                                                + com.example.slagalica.logic.LeagueLogic.getLeagueIcon(newLeague)
+                                                + " " + com.example.slagalica.logic.LeagueLogic.getLeagueName(newLeague);
+                                    }
+                                    AppNotification notif = new AppNotification();
+                                    notif.setUserId(userId);
+                                    notif.setType(AppNotificationManager.TYPE_REWARD);
+                                    notif.setMessage(msg);
+                                    notif.setRead(false);
+                                    notif.setCreatedAt(System.currentTimeMillis());
+                                    db.collection("notifications").add(notif);
+                                });
+                    }
+                });
+    }
     // ---- Ključevi ciklusa (bez java.time, samo Calendar) ----
 
     public String weekKey() {

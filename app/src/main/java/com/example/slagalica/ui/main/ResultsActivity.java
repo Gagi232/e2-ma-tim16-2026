@@ -1,4 +1,6 @@
 package com.example.slagalica.ui.main;
+import com.example.slagalica.data.model.AppNotification;
+import com.example.slagalica.logic.AppNotificationManager;
 import com.google.firebase.auth.FirebaseAuth;
 import android.content.Intent;
 import android.os.Bundle;
@@ -85,6 +87,40 @@ public class ResultsActivity extends AppCompatActivity {
         }
     }
 
+    private void showLeagueChangeDialog(int oldLeague, int newLeague) {
+        if (isFinishing() || isDestroyed()) return;
+
+        boolean promoted = newLeague > oldLeague;
+        String title = promoted ? "🎉 Napredovanje u ligi!" : "⬇️ Pad u ligi";
+        String message = promoted
+                ? "Prešao si u "
+                  + com.example.slagalica.logic.LeagueLogic.getLeagueIcon(newLeague)
+                  + " " + com.example.slagalica.logic.LeagueLogic.getLeagueName(newLeague)
+                  + "!\n\nSada dobijate " + newLeague + " dodatnih tokena dnevno."
+                : "Pao si na "
+                  + com.example.slagalica.logic.LeagueLogic.getLeagueIcon(newLeague)
+                  + " " + com.example.slagalica.logic.LeagueLogic.getLeagueName(newLeague)
+                  + ".\n\nNastavi da igraš da bi se vratio!";
+
+        new androidx.appcompat.app.AlertDialog.Builder(this)
+                .setTitle(title)
+                .setMessage(message)
+                .setPositiveButton("OK", null)
+                .show();
+
+        // Notifikacija u bazu (za slučaj da korisnik nije u appu sledeći put)
+        String uid = com.google.firebase.auth.FirebaseAuth.getInstance().getUid();
+        if (uid != null) {
+            AppNotification notif = new AppNotification();
+            notif.setUserId(uid);
+            notif.setType(AppNotificationManager.TYPE_REWARD);
+            notif.setMessage(message);
+            notif.setRead(false);
+            notif.setCreatedAt(System.currentTimeMillis());
+            com.google.firebase.firestore.FirebaseFirestore.getInstance()
+                    .collection("notifications").add(notif);
+        }
+    }
     private void saveResults(boolean won, int myScore, int starsChange) {
         StatsRepository statsRepo = new StatsRepository();
         UserRepository  userRepo  = new UserRepository();
@@ -150,11 +186,15 @@ public class ResultsActivity extends AppCompatActivity {
                 }
 
                 // 3. Ažuriraj ligu na osnovu novih zvezda
+                int oldLeague = user.getLeague();
                 int newLeague = com.example.slagalica.logic.LeagueLogic.calculateLeague(newStars);
-                if (newLeague != user.getLeague()) {
+                if (newLeague != oldLeague) {
                     userRepo.updateField("league", newLeague,
                             new UserRepository.Callback<Void>() {
-                                @Override public void onSuccess(Void r) {}
+                                @Override
+                                public void onSuccess(Void r) {
+                                    showLeagueChangeDialog(oldLeague, newLeague);
+                                }
                                 @Override public void onError(Exception e) {}
                             });
                 }

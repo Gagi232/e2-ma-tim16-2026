@@ -747,6 +747,16 @@ public class MojBrojActivity extends AppCompatActivity {
 
     private void goToResults() {
         stopRoundTimer();
+
+        boolean isChallengeMode = getIntent().getBooleanExtra("isChallengeMode", false);
+        if (isChallengeMode) {
+            Intent result = new Intent();
+            result.putExtra("gameScore", prevMyScore + myTotalScore);
+            setResult(RESULT_OK, result);
+            finish();
+            return;
+        }
+
         Intent intent = new Intent(this, ResultsActivity.class);
         intent.putExtra("isGuest",            isGuest);
         intent.putExtra("matchId",            matchId);

@@ -583,6 +583,15 @@ public class SpojniceActivity extends AppCompatActivity {
                     @Override public void onError(Exception e) {}
                 });
 
+        boolean isChallengeMode = getIntent().getBooleanExtra("isChallengeMode", false);
+        if (isChallengeMode) {
+            Intent result = new Intent();
+            result.putExtra("gameScore", prevMy + totalMy);
+            setResult(RESULT_OK, result);
+            finish();
+            return;
+        }
+
         Intent intent = new Intent(this, AsocijacijeActivity.class);
         intent.putExtra("isGuest",            isGuest);
         intent.putExtra("matchId",            matchId);

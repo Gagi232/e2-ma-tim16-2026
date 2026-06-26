@@ -1,5 +1,6 @@
 package com.example.slagalica.ui.region;
 
+import android.content.Intent;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.view.LayoutInflater;
@@ -73,6 +74,14 @@ public class RegionsFragment extends Fragment {
 
         loadPlayerMarkers();
         loadCurrentUserThenLeaderboard();
+
+        view.findViewById(R.id.btnOpenChat).setOnClickListener(v ->
+                startActivity(new Intent(requireContext(),
+                        com.example.slagalica.ui.chat.ChatActivity.class)));
+
+        view.findViewById(R.id.btnOpenChallenges).setOnClickListener(v ->
+                startActivity(new Intent(requireContext(),
+                        com.example.slagalica.ui.challenge.ChallengeActivity.class)));
 
         return view;
     }

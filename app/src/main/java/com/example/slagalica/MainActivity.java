@@ -27,6 +27,8 @@ import com.example.slagalica.ui.region.RegionsFragment;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.android.material.button.MaterialButton;
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.QueryDocumentSnapshot;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -202,17 +204,17 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void checkPendingRewardDialog() {
-        String uid = com.google.firebase.auth.FirebaseAuth.getInstance().getUid();
+        String uid = FirebaseAuth.getInstance().getUid();
         if (uid == null) return;
 
-        com.google.firebase.firestore.FirebaseFirestore.getInstance()
+        FirebaseFirestore.getInstance()
                 .collection("pending_rewards")
                 .whereEqualTo("userId", uid)
                 .whereEqualTo("shown", false)
                 .get()
                 .addOnSuccessListener(snap -> {
-                    for (com.google.firebase.firestore.QueryDocumentSnapshot doc : snap) {
-                        showRewardDialog(doc);
+                    for (QueryDocumentSnapshot doc : snap) {
+                        runOnUiThread(() -> showRewardDialog(doc));
                     }
                 });
     }

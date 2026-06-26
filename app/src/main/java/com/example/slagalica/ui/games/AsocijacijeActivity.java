@@ -578,7 +578,22 @@ public class AsocijacijeActivity extends AppCompatActivity {
         oppScoreTotal += oppRoundPts;
 
         if (currentRound == 1) {
-            new Handler().postDelayed(() -> startMultiplayerRound(2), 2000);
+            if (matchRef == null) {
+                // solo/challenge — učitaj novu asocijaciju za rundu 2
+                new Handler().postDelayed(() -> {
+                    currentRound = 2;
+                    repo.getRandomAssociation(assoc -> {
+                        association = assoc;
+                        uiSetupRound = -1;
+                        timerStartedRound = -1;
+                        setupRoundUI(2);
+                        isMyTurn = true;
+                        startTimer(120);
+                    }, e -> showError());
+                }, 2000);
+            } else {
+                new Handler().postDelayed(() -> startMultiplayerRound(2), 2000);
+            }
         } else {
             statsRepo.saveAsocijacijeResult(finalSolved, myRoundPts, new StatsRepository.Callback<Void>() {
                 @Override public void onSuccess(Void r) {}
@@ -647,6 +662,15 @@ public class AsocijacijeActivity extends AppCompatActivity {
     }
 
     private void goNext() {
+        boolean isChallengeMode = getIntent().getBooleanExtra("isChallengeMode", false);
+        if (isChallengeMode) {
+            Intent result = new Intent();
+            result.putExtra("gameScore", myScoreTotal);
+            setResult(RESULT_OK, result);
+            finish();
+            return;
+        }
+
         Intent intent = new Intent(this, SkockoActivity.class);
         intent.putExtra("isGuest", isGuest);
         intent.putExtra("matchId", matchId);

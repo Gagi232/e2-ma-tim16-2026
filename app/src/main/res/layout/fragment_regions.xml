@@ -246,5 +246,20 @@
             </LinearLayout>
         </androidx.cardview.widget.CardView>
 
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnOpenChat"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="💬 Regionalni čet"
+            android:layout_marginTop="16dp"
+            style="@style/ButtonPrimary"/>
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnOpenChallenges"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="⚔️ Izazovi"
+            android:layout_marginTop="8dp"
+            style="@style/ButtonSecondary"/>
     </LinearLayout>
 </ScrollView>

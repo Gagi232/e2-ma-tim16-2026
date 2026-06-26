@@ -522,7 +522,15 @@ public class SkockoActivity extends AppCompatActivity {
         updateScoreUI();
 
         if (currentRound == 1) {
-            new Handler().postDelayed(() -> startMultiplayerRound(2), 2000);
+            if (matchRef == null) {
+                new Handler().postDelayed(() -> {
+                    currentRound = 2;
+                    uiSetupRound = -1;
+                    loadSolo();
+                }, 2000);
+            } else {
+                new Handler().postDelayed(() -> startMultiplayerRound(2), 2000);
+            }
         } else {
             statsRepo.saveSkockoResult(true, myScoreTotal, new StatsRepository.Callback<Void>() {
                 @Override public void onSuccess(Void result) {}
@@ -617,6 +625,15 @@ public class SkockoActivity extends AppCompatActivity {
     }
 
     private void goNext() {
+        boolean isChallengeMode = getIntent().getBooleanExtra("isChallengeMode", false);
+        if (isChallengeMode) {
+            Intent result = new Intent();
+            result.putExtra("gameScore", myScoreTotal);
+            setResult(RESULT_OK, result);
+            finish();
+            return;
+        }
+
         Intent i = new Intent(this, KorakPoKorakActivity.class);
         i.putExtra("isGuest", isGuest); i.putExtra("matchId", matchId); i.putExtra("myId", myId);
         i.putExtra("opponentId", opponentId); i.putExtra("isPlayer1", isPlayer1);

@@ -644,6 +644,16 @@ public class KorakPoKorakActivity extends AppCompatActivity {
     private void goToMojBroj() {
         stopRoundTimer();
         stopBonusTimer();
+
+        boolean isChallengeMode = getIntent().getBooleanExtra("isChallengeMode", false);
+        if (isChallengeMode) {
+            Intent result = new Intent();
+            result.putExtra("gameScore", prevMyScore + myTotalScore);
+            setResult(RESULT_OK, result);
+            finish();
+            return;
+        }
+
         Intent intent = new Intent(this, MojBrojActivity.class);
         intent.putExtra("isGuest",            isGuest);
         intent.putExtra("matchId",            matchId);

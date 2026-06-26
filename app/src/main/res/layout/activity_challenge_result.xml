@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent" android:layout_height="match_parent"
+    android:orientation="vertical" android:background="@color/background">
+    <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:text="Rezultati izazova" android:textSize="20sp" android:textStyle="bold"
+        android:textColor="@color/text_primary" android:padding="16dp"/>
+    <TextView android:id="@+id/tvWaiting"
+        android:layout_width="wrap_content" android:layout_height="wrap_content"
+        android:text="Čekamo ostale igrače..." android:textColor="@color/text_secondary"
+        android:layout_gravity="center" android:padding="8dp"/>
+    <ScrollView android:layout_width="match_parent" android:layout_height="0dp"
+        android:layout_weight="1">
+        <LinearLayout android:id="@+id/llChallengeResults"
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:orientation="vertical" android:padding="16dp"/>
+    </ScrollView>
+    <com.google.android.material.button.MaterialButton android:id="@+id/btnBackHome"
+        android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:text="Nazad" android:layout_margin="16dp" style="@style/ButtonSecondary"/>
+</LinearLayout>

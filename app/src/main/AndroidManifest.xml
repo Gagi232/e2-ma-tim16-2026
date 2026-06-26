@@ -39,5 +39,10 @@
         <activity android:name=".ui.main.ResultsActivity" />
         <activity android:name=".ui.main.GuestActivity" />
         <activity android:name=".ui.tournament.TournamentActivity" />
+        <activity android:name=".ui.chat.ChatActivity" />
+        <activity android:name=".ui.challenge.ChallengeActivity" />
+        <activity android:name=".ui.challenge.ChallengeGameActivity" />
+        <activity android:name=".ui.challenge.ChallengeResultActivity" />
+
     </application>
 </manifest>

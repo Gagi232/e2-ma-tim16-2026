@@ -457,7 +457,14 @@ public class KoZnaZnaActivity extends AppCompatActivity {
             });
         }
 
-
+        boolean isChallengeMode = getIntent().getBooleanExtra("isChallengeMode", false);
+        if (isChallengeMode) {
+            Intent result = new Intent();
+            result.putExtra("gameScore", myScore);
+            setResult(RESULT_OK, result);
+            finish();
+            return;
+        }
 
         Intent i = new Intent(this, SpojniceActivity.class);
         i.putExtra("isGuest", isGuest); i.putExtra("matchId", matchId);

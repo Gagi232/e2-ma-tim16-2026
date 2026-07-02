@@ -11,7 +11,6 @@
         android:orientation="vertical"
         android:padding="16dp">
 
-        <!-- Naslov -->
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -22,7 +21,6 @@
             android:layout_gravity="center"
             android:layout_marginBottom="8dp"/>
 
-        <!-- Info kartica -->
         <androidx.cardview.widget.CardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -82,11 +80,9 @@
                         android:text="Pobeda u finalu: +3 tokena i +10 zvezda"
                         android:textSize="14sp" android:textColor="@color/text_secondary"/>
                 </LinearLayout>
-
             </LinearLayout>
         </androidx.cardview.widget.CardView>
 
-        <!-- Tokeni upozorenje -->
         <androidx.cardview.widget.CardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -101,14 +97,13 @@
                 android:gravity="center_vertical">
                 <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
                     android:text="⚠️" android:textSize="24sp" android:layout_marginEnd="12dp"/>
-                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                <TextView android:layout_width="0dp" android:layout_height="wrap_content"
+                    android:layout_weight="1"
                     android:text="Odustajanjem u bilo kojoj fazi ne dobijate nagrade niti tokene nazad!"
-                    android:textSize="13sp" android:textColor="@color/text_primary"
-                    android:layout_weight="1"/>
+                    android:textSize="13sp" android:textColor="@color/text_primary"/>
             </LinearLayout>
         </androidx.cardview.widget.CardView>
 
-        <!-- Dugme za ulazak -->
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnJoin"
             android:layout_width="match_parent"
@@ -126,7 +121,7 @@
             android:layout_marginBottom="16dp"
             style="@style/ButtonSecondary"/>
 
-        <!-- Čekanje igrača -->
+        <!-- Čekanje -->
         <LinearLayout
             android:id="@+id/llWaiting"
             android:layout_width="match_parent"
@@ -161,10 +156,9 @@
                 android:textColor="@color/text_secondary"
                 android:layout_gravity="center"
                 android:layout_marginTop="8dp"/>
-
         </LinearLayout>
 
-        <!-- Bracket / Spajanje igrača -->
+        <!-- Bracket -->
         <LinearLayout
             android:id="@+id/llBracket"
             android:layout_width="match_parent"
@@ -175,7 +169,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Polufinalé"
+                android:text="Polufinale"
                 android:textSize="18sp"
                 android:textStyle="bold"
                 android:textColor="@color/text_primary"
@@ -195,41 +189,43 @@
                     android:padding="16dp"
                     android:gravity="center_vertical">
 
-                    <!-- Igrač 1 (ti) -->
                     <LinearLayout
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
                         android:orientation="vertical"
                         android:gravity="center">
-                        <ImageView
-                            android:layout_width="56dp"
-                            android:layout_height="56dp"
-                            android:src="@mipmap/ic_launcher"
-                            android:background="@drawable/bg_avatar_gold"/>
                         <TextView
+                            android:id="@+id/tvSF1P1Avatar"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Ti"
+                            android:text="👤"
+                            android:textSize="36sp"
+                            android:gravity="center"/>
+                        <TextView
+                            android:id="@+id/tvSF1P1Name"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="..."
                             android:textSize="14sp"
                             android:textStyle="bold"
                             android:textColor="@color/primary_green"
                             android:layout_marginTop="4dp"/>
                         <TextView
+                            android:id="@+id/tvSF1P1League"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="🏆 Liga 2"
+                            android:text="..."
                             android:textSize="11sp"
                             android:textColor="@color/text_secondary"/>
                     </LinearLayout>
 
-                    <!-- VS -->
                     <LinearLayout
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:orientation="vertical"
                         android:gravity="center"
-                        android:paddingHorizontal="8dp">
+                        android:padding="8dp">
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
@@ -244,34 +240,36 @@
                             android:textSize="20sp"/>
                     </LinearLayout>
 
-                    <!-- Protivnik 1 -->
                     <LinearLayout
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
                         android:orientation="vertical"
                         android:gravity="center">
-                        <ImageView
-                            android:layout_width="56dp"
-                            android:layout_height="56dp"
-                            android:src="@mipmap/ic_launcher"
-                            android:background="@drawable/bg_avatar"/>
                         <TextView
+                            android:id="@+id/tvSF1P2Avatar"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="igrač_2"
+                            android:text="👤"
+                            android:textSize="36sp"
+                            android:gravity="center"/>
+                        <TextView
+                            android:id="@+id/tvSF1P2Name"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="..."
                             android:textSize="14sp"
                             android:textStyle="bold"
                             android:textColor="@color/text_primary"
                             android:layout_marginTop="4dp"/>
                         <TextView
+                            android:id="@+id/tvSF1P2League"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="🏆 Liga 1"
+                            android:text="..."
                             android:textSize="11sp"
                             android:textColor="@color/text_secondary"/>
                     </LinearLayout>
-
                 </LinearLayout>
             </androidx.cardview.widget.CardView>
 
@@ -295,23 +293,27 @@
                         android:layout_weight="1"
                         android:orientation="vertical"
                         android:gravity="center">
-                        <ImageView
-                            android:layout_width="56dp"
-                            android:layout_height="56dp"
-                            android:src="@mipmap/ic_launcher"
-                            android:background="@drawable/bg_avatar_bronze"/>
                         <TextView
+                            android:id="@+id/tvSF2P1Avatar"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="igrač_3"
+                            android:text="👤"
+                            android:textSize="36sp"
+                            android:gravity="center"/>
+                        <TextView
+                            android:id="@+id/tvSF2P1Name"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="..."
                             android:textSize="14sp"
                             android:textStyle="bold"
                             android:textColor="@color/text_primary"
                             android:layout_marginTop="4dp"/>
                         <TextView
+                            android:id="@+id/tvSF2P1League"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="🏆 Liga 3"
+                            android:text="..."
                             android:textSize="11sp"
                             android:textColor="@color/text_secondary"/>
                     </LinearLayout>
@@ -321,7 +323,7 @@
                         android:layout_height="wrap_content"
                         android:orientation="vertical"
                         android:gravity="center"
-                        android:paddingHorizontal="8dp">
+                        android:padding="8dp">
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
@@ -342,31 +344,34 @@
                         android:layout_weight="1"
                         android:orientation="vertical"
                         android:gravity="center">
-                        <ImageView
-                            android:layout_width="56dp"
-                            android:layout_height="56dp"
-                            android:src="@mipmap/ic_launcher"
-                            android:background="@drawable/bg_avatar"/>
                         <TextView
+                            android:id="@+id/tvSF2P2Avatar"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="igrač_4"
+                            android:text="👤"
+                            android:textSize="36sp"
+                            android:gravity="center"/>
+                        <TextView
+                            android:id="@+id/tvSF2P2Name"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="..."
                             android:textSize="14sp"
                             android:textStyle="bold"
                             android:textColor="@color/text_primary"
                             android:layout_marginTop="4dp"/>
                         <TextView
+                            android:id="@+id/tvSF2P2League"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="🏆 Liga 2"
+                            android:text="..."
                             android:textSize="11sp"
                             android:textColor="@color/text_secondary"/>
                     </LinearLayout>
-
                 </LinearLayout>
             </androidx.cardview.widget.CardView>
 
-            <!-- Final bracket -->
+            <!-- Finale -->
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
@@ -395,12 +400,15 @@
                         android:layout_weight="1"
                         android:orientation="vertical"
                         android:gravity="center">
-                        <ImageView
-                            android:layout_width="56dp"
-                            android:layout_height="56dp"
-                            android:src="@mipmap/ic_launcher"
-                            android:background="@drawable/bg_avatar_gold"/>
                         <TextView
+                            android:id="@+id/tvFP1Avatar"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="👤"
+                            android:textSize="36sp"
+                            android:gravity="center"/>
+                        <TextView
+                            android:id="@+id/tvFP1Name"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="Pobednik 1"
@@ -415,7 +423,7 @@
                         android:layout_height="wrap_content"
                         android:orientation="vertical"
                         android:gravity="center"
-                        android:paddingHorizontal="8dp">
+                        android:padding="8dp">
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
@@ -436,12 +444,15 @@
                         android:layout_weight="1"
                         android:orientation="vertical"
                         android:gravity="center">
-                        <ImageView
-                            android:layout_width="56dp"
-                            android:layout_height="56dp"
-                            android:src="@mipmap/ic_launcher"
-                            android:background="@drawable/bg_avatar_bronze"/>
                         <TextView
+                            android:id="@+id/tvFP2Avatar"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="👤"
+                            android:textSize="36sp"
+                            android:gravity="center"/>
+                        <TextView
+                            android:id="@+id/tvFP2Name"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="Pobednik 2"
@@ -450,11 +461,9 @@
                             android:textColor="@color/text_primary"
                             android:layout_marginTop="4dp"/>
                     </LinearLayout>
-
                 </LinearLayout>
             </androidx.cardview.widget.CardView>
 
-            <!-- Dugme za igranje -->
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnPlayTournament"
                 android:layout_width="match_parent"

@@ -577,6 +577,16 @@ public class AsocijacijeActivity extends AppCompatActivity {
         myScoreTotal += myRoundPts;
         oppScoreTotal += oppRoundPts;
 
+        boolean isChallengeMode = getIntent().getBooleanExtra("isChallengeMode", false);
+        if (isChallengeMode) {
+            statsRepo.saveAsocijacijeResult(finalSolved, myRoundPts, new StatsRepository.Callback<Void>() {
+                @Override public void onSuccess(Void r) {}
+                @Override public void onError(Exception e) {}
+            });
+            goNext();
+            return;
+        }
+
         if (currentRound == 1) {
             if (matchRef == null) {
                 // solo/challenge — učitaj novu asocijaciju za rundu 2

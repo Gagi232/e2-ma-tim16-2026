@@ -36,7 +36,7 @@ public class ChallengeGameActivity extends AppCompatActivity {
                     result -> {
                         if (result.getResultCode() == RESULT_OK && result.getData() != null) {
                             int gameScore = result.getData().getIntExtra("gameScore", 0);
-                            totalScore += gameScore;
+                            totalScore = gameScore;
                             updateUI();
                         }
                         currentGameIndex++;

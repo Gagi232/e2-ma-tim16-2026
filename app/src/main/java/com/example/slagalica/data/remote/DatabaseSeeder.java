@@ -103,7 +103,7 @@ public class DatabaseSeeder {
         a2.setCol3Solution("PROLEĆE");
         a2.setCol4(Arrays.asList("LIŠĆE", "ŽETVA", "OKTOBAR", "VETAR"));
         a2.setCol4Solution("JESEN");
-        a2.setFinalSolution("GODIŠNJA DOBA");
+        a2.setFinalSolution("GODISNJA DOBA");
         db.collection("asocijacije").add(a2);
     }
 

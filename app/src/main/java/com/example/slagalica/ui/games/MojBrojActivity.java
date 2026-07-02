@@ -659,7 +659,11 @@ public class MojBrojActivity extends AppCompatActivity {
     // ── Solo simulacija ───────────────────────────────────────────────────────
 
     private void simulateOpponentSolo() {
-        int oppResult = random.nextBoolean() ? targetNumber : targetNumber + random.nextInt(50) - 25;
+        boolean isChallengeMode = getIntent().getBooleanExtra("isChallengeMode", false);
+        int oppResult = isChallengeMode
+                ? Integer.MIN_VALUE
+                : (random.nextBoolean() ? targetNumber : targetNumber + random.nextInt(50) - 25);
+
         if (currentRound == 1) oppResult1 = oppResult;
         else oppResult2 = oppResult;
         finishRoundSolo();
@@ -688,6 +692,11 @@ public class MojBrojActivity extends AppCompatActivity {
     // ── Napredovanje ──────────────────────────────────────────────────────────
 
     private void proceedAfterRound(int round) {
+        boolean isChallengeMode = getIntent().getBooleanExtra("isChallengeMode", false);
+        if (isChallengeMode) {
+            endGame();
+            return;
+        }
         if (round < 2) {
             startRound(2);
         } else {

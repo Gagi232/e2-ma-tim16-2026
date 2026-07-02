@@ -101,7 +101,23 @@ public class ChallengeActivity extends AppCompatActivity {
             btnJoin.setOnClickListener(v -> joinAndPlay(c));
         }
 
+        MaterialButton btnView = card.findViewById(R.id.btnViewChallenge);
+        if (btnView != null) {
+            // Vidljivo samo ako je korisnik već učesnik (ima smisla da vidi tuđi napredak
+            // tek kad je i sam uložio - inače nema pristup tim podacima na smislen način)
+            btnView.setVisibility(alreadyIn ? View.VISIBLE : View.GONE);
+            btnView.setOnClickListener(v -> openChallengeResults(c));
+        }
+
         llChallenges.addView(card);
+    }
+
+    private void openChallengeResults(Challenge c) {
+        Intent i = new Intent(this, ChallengeResultActivity.class);
+        i.putExtra("challengeId", c.getId());
+        i.putExtra("starsWager", c.getStarsWager());
+        i.putExtra("tokensWager", c.getTokensWager());
+        startActivity(i);
     }
 
     private void showCreateDialog() {

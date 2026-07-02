@@ -11,6 +11,7 @@ import com.example.slagalica.data.model.AppNotification;
 import com.example.slagalica.data.model.ChatMessage;
 import com.example.slagalica.data.model.User;
 import com.example.slagalica.data.repository.ChatRepository;
+import com.example.slagalica.data.repository.MissionRepository;
 import com.example.slagalica.data.repository.NotificationRepository;
 import com.example.slagalica.data.repository.UserRepository;
 import com.example.slagalica.logic.AppNotificationManager;
@@ -99,7 +100,13 @@ public class ChatActivity extends AppCompatActivity {
 
         etMessage.setText("");
 
-        chatRepo.sendMessage(msg, () -> {}, e ->
+        chatRepo.sendMessage(msg, () -> {
+            new MissionRepository().completeMission(myUid, "sendMessage",
+                    new MissionRepository.Callback<Void>() {
+                        @Override public void onSuccess(Void r) {}
+                        @Override public void onError(Exception e) {}
+                    });
+        }, e ->
                 Toast.makeText(this, "Greška pri slanju.", Toast.LENGTH_SHORT).show());
 
         notifyRegionMembers(text);

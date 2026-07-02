@@ -521,6 +521,17 @@ public class SkockoActivity extends AppCompatActivity {
         oppRoundScore = 0;
         updateScoreUI();
 
+
+        boolean isChallengeMode = getIntent().getBooleanExtra("isChallengeMode", false);
+        if (isChallengeMode) {
+            statsRepo.saveSkockoResult(true, myScoreTotal, new StatsRepository.Callback<Void>() {
+                @Override public void onSuccess(Void result) {}
+                @Override public void onError(Exception e) {}
+            });
+            goNext();
+            return;
+        }
+
         if (currentRound == 1) {
             if (matchRef == null) {
                 new Handler().postDelayed(() -> {

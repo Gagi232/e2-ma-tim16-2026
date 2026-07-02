@@ -467,6 +467,13 @@ public class SpojniceActivity extends AppCompatActivity {
         totalOpp += oppRoundScore;
         updateScoreUI();
 
+        boolean isChallengeMode = getIntent().getBooleanExtra("isChallengeMode", false);
+        if (isChallengeMode) {
+            finishGame();
+            return;
+        }
+
+
         if (currentRound == 1) {
             tvRound.setText("Runda 1 završena! +" + myRoundScore + " bodova. Pripremi se...");
             new Handler().postDelayed(() -> startRound(2), 2500);

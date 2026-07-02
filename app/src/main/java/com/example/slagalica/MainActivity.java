@@ -226,7 +226,7 @@ public class MainActivity extends AppCompatActivity {
 
         android.view.View dialogView = getLayoutInflater().inflate(R.layout.dialog_reward, null);
         TextView tvRewardText = dialogView.findViewById(R.id.tvRewardText);
-        ImageView ivConfetti = dialogView.findViewById(R.id.ivConfetti); // emoji/ikonica za animaciju
+        TextView  ivConfetti = dialogView.findViewById(R.id.ivConfetti); // emoji/ikonica za animaciju
 
         String medal = place == 1 ? "🥇" : place == 2 ? "🥈" : place == 3 ? "🥉" : "🏅";
         tvRewardText.setText(medal + " " + place + ". mesto na " + cycleLabel + " rang listi!\n+" + tokens + " tokena");

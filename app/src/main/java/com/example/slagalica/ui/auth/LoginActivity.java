@@ -119,7 +119,7 @@ public class LoginActivity extends AppCompatActivity {
         auth.signInWithEmailAndPassword(email, password)
                 .addOnSuccessListener(result -> {
                     FirebaseUser user = result.getUser();
-                    if (user != null) {
+                    if (user != null  && user.isEmailVerified()) {
                         showLoading(false);
                         goToMain();
                     } else {

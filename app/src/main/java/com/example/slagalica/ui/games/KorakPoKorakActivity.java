@@ -622,6 +622,12 @@ public class KorakPoKorakActivity extends AppCompatActivity {
     }
 
     private void proceedAfterRound() {
+        boolean isChallengeMode = getIntent().getBooleanExtra("isChallengeMode", false);
+        if (isChallengeMode) {
+            endGame();
+            return;
+        }
+
         if (currentRound < 2) {
             int next = currentRound + 1;
             handler.postDelayed(() -> {

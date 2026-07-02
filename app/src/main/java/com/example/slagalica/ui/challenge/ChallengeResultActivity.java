@@ -55,15 +55,20 @@ public class ChallengeResultActivity extends AppCompatActivity {
         Map<String, Challenge.ParticipantResult> parts = c.getParticipants();
         if (parts == null) return;
 
-        // Sortiraj po score-u
         List<Map.Entry<String, Challenge.ParticipantResult>> sorted = new ArrayList<>(parts.entrySet());
-        sorted.sort((a, b) -> b.getValue().score - a.getValue().score);
+        sorted.sort((a, b) -> {
+            int scoreA = a.getValue().finished ? a.getValue().score : -1;
+            int scoreB = b.getValue().finished ? b.getValue().score : -1;
+            return Integer.compare(scoreB, scoreA);
+        });
 
         long finishedCount = sorted.stream().filter(e -> e.getValue().finished).count();
-        boolean allDone = finishedCount == sorted.size();
+        int totalCount = sorted.size();
 
+        // Prikaži status čekanja
+        boolean allDone = finishedCount == totalCount;
         tvWaiting.setVisibility(allDone ? View.GONE : View.VISIBLE);
-        tvWaiting.setText("Čekamo još " + (sorted.size() - finishedCount) + " igrača...");
+        tvWaiting.setText("Čekamo još " + (totalCount - finishedCount) + " igrača...");
 
         llResults.removeAllViews();
         for (int i = 0; i < sorted.size(); i++) {
@@ -74,8 +79,10 @@ public class ChallengeResultActivity extends AppCompatActivity {
             String medal = i == 0 ? "🥇" : i == 1 ? "🥈" : i == 2 ? "🥉" : "4.";
             ((TextView) row.findViewById(R.id.tvCRRank)).setText(medal);
             ((TextView) row.findViewById(R.id.tvCRUsername)).setText(entry.getValue().username);
+
+            // Prikaži "..." dok igrač nije završio
             String scoreText = entry.getValue().finished
-                    ? String.valueOf(entry.getValue().score) : "...";
+                    ? String.valueOf(entry.getValue().score) : "⏳";
             ((TextView) row.findViewById(R.id.tvCRScore)).setText(scoreText + " bodova");
 
             if (entry.getKey().equals(myUid)) {
@@ -84,27 +91,34 @@ public class ChallengeResultActivity extends AppCompatActivity {
             llResults.addView(row);
         }
 
-        if (allDone && !rewardsDistributed) {
+        // Nagrade samo kad SVI završe I ima bar 2 igrača
+        if (allDone && !rewardsDistributed && totalCount >= 2) {
             rewardsDistributed = true;
             distributeRewards(sorted, c);
+        } else if (allDone && !rewardsDistributed && totalCount == 1) {
+            // Jedini igrač — čekaj malo, možda neko još nije ni ušao
+            // Ne distribuiraj odmah
+            tvWaiting.setVisibility(View.VISIBLE);
+            tvWaiting.setText("Čekamo da se drugi igrači pridruže...");
         }
     }
 
     private void distributeRewards(
             List<Map.Entry<String, Challenge.ParticipantResult>> sorted, Challenge c) {
 
-        int n = sorted.size();
-        int totalStars  = c.getStarsWager()  * n;
-        int totalTokens = c.getTokensWager() * n;
+        // Uzmi samo finished igrače za nagrade
+        List<Map.Entry<String, Challenge.ParticipantResult>> finishedSorted = new ArrayList<>();
+        for (Map.Entry<String, Challenge.ParticipantResult> entry : sorted) {
+            if (entry.getValue().finished) finishedSorted.add(entry);
+        }
 
-        // 1. mesto — 75% ukupnog uloga
-        // 2. mesto — dobija nazad uloženo
-        // ostali — gube ulog
+        int n = finishedSorted.size();
+        int totalStars  = c.getStarsWager() * c.getParticipants().size(); // ukupan ulog SVIH
+        int totalTokens = c.getTokensWager() * c.getParticipants().size();
 
-        for (int i = 0; i < sorted.size(); i++) {
-            String uid = sorted.get(i).getKey();
-            boolean isMe = uid.equals(myUid);
-            if (!isMe) continue;
+        for (int i = 0; i < finishedSorted.size(); i++) {
+            String uid = finishedSorted.get(i).getKey();
+            if (!uid.equals(myUid)) continue;
 
             final int rank = i; // DODATO
 

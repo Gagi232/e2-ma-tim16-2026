@@ -37,6 +37,15 @@ public class ResultsActivity extends AppCompatActivity {
         tvP1Score.setText(String.valueOf(myTotal));
         tvP2Score.setText(String.valueOf(oppTotal));
 
+        boolean isTournament = getIntent().getBooleanExtra("isTournament", false);
+        String tournamentId  = getIntent().getStringExtra("tournamentId");
+        String matchKey      = getIntent().getStringExtra("tournamentMatchKey");
+        boolean isFinal      = getIntent().getBooleanExtra("isTournamentFinal", false);
+
+        if (isTournament && isLoggedIn) {
+            handleTournamentResult(iWon, myTotal, tournamentId, matchKey, isFinal);
+        }
+
         if (isFriendly) {
             // Zahtev 3e - prijateljske partije ne donose/ne oduzimaju zvezde
             tvStarsEarned.setText("Prijateljska partija - bez zvezda");
@@ -87,6 +96,68 @@ public class ResultsActivity extends AppCompatActivity {
         }
     }
 
+    private void handleTournamentResult(boolean won, int myScore,
+                                        String tournamentId, String matchKey, boolean isFinal) {
+        String uid = FirebaseAuth.getInstance().getUid();
+        if (uid == null) return;
+
+        // Upiši pobednika u Firestore
+        new com.example.slagalica.data.repository.TournamentRepository()
+                .submitSemifinalResult(tournamentId, matchKey, won ? uid : null,
+                        new com.example.slagalica.data.repository.TournamentRepository.Callback<Void>() {
+                            @Override public void onSuccess(Void r) {}
+                            @Override public void onError(Exception e) {}
+                        });
+
+        if (!won && !isFinal) return; // gubitak u polufinalu — nema nagrada
+
+        new com.example.slagalica.data.repository.UserRepository()
+                .getCurrentUser(new com.example.slagalica.data.repository.UserRepository.Callback<
+                        com.example.slagalica.data.model.User>() {
+            @Override
+            public void onSuccess(com.example.slagalica.data.model.User user) {
+                int starsChange = calculateStars(won, myScore);
+                int bonusTokens = 0;
+                int bonusStars  = 0;
+
+                if (won && !isFinal) {
+                    bonusTokens = 2; // pobeda u polufinalu
+                } else if (won && isFinal) {
+                    bonusTokens = 3; // pobeda u finalu
+                    bonusStars  = 10;
+                } else if (!won && isFinal) {
+                    // gubitak u finalu — samo regularne zvezde
+                }
+
+                int newStars  = Math.max(0, user.getStars() + starsChange + bonusStars);
+                int newTokens = user.getTokens() + bonusTokens;
+
+                com.example.slagalica.data.repository.UserRepository repo =
+                        new com.example.slagalica.data.repository.UserRepository();
+                repo.updateField("stars", newStars, new com.example.slagalica.data.repository.UserRepository.Callback<Void>() {
+                    @Override public void onSuccess(Void r) {}
+                    @Override public void onError(Exception e) {}
+                });
+                if (newTokens != user.getTokens()) {
+                    repo.updateField("tokens", newTokens, new com.example.slagalica.data.repository.UserRepository.Callback<Void>() {
+                        @Override public void onSuccess(Void r) {}
+                        @Override public void onError(Exception e) {}
+                    });
+                }
+
+                // Misija "pobedi turnir"
+                if (won && isFinal) {
+                    new com.example.slagalica.data.repository.MissionRepository()
+                            .completeMission(uid, "winTournament",
+                                    new com.example.slagalica.data.repository.MissionRepository.Callback<Void>() {
+                                        @Override public void onSuccess(Void r) {}
+                                        @Override public void onError(Exception e) {}
+                                    });
+                }
+            }
+            @Override public void onError(Exception e) {}
+        });
+    }
     private void showLeagueChangeDialog(int oldLeague, int newLeague) {
         if (isFinishing() || isDestroyed()) return;
 
